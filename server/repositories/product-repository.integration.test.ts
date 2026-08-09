@@ -128,6 +128,128 @@ describe('product repository', () => {
     })
   })
 
+  it('updates an organization product with optimistic locking and an audit event', async () => {
+    const created = await repository.register({
+      organizationId,
+      registrationSource: 'MANUAL',
+      businessCode: 'P-200020',
+      name: '更新前の商品',
+      category: '一般消耗品',
+      origin: '国内製',
+      manufacturerName: '更新前メーカー',
+      manufacturerCountry: '日本',
+      gtin: '4900000000025',
+      approvalNumber: null,
+      regulatoryCode: null,
+      unit: '個',
+      lookupQuery: null,
+    })
+
+    const detail = await repository.getById({ organizationId, organizationProductId: created.id })
+    expect(detail).toMatchObject({ businessCode: 'P-200020', version: 1, name: '更新前の商品' })
+
+    const updated = await repository.update({
+      organizationId,
+      organizationProductId: created.id,
+      version: detail!.version,
+      businessCode: 'P-200021',
+      name: '更新後の商品',
+      category: '医療材料',
+      origin: '海外製',
+      manufacturerName: '更新後メーカー',
+      manufacturerCountry: 'ドイツ',
+      gtin: '4900000000032',
+      approvalNumber: 'APPROVAL-1',
+      regulatoryCode: 'REGULATORY-1',
+      unit: '箱',
+    })
+
+    expect(updated.version).toBe(2)
+    await expect(
+      repository.getById({ organizationId, organizationProductId: created.id }),
+    ).resolves.toMatchObject({
+      businessCode: 'P-200021',
+      name: '更新後の商品',
+      manufacturerName: '更新後メーカー',
+      manufacturerCountry: 'ドイツ',
+      version: 2,
+    })
+    await expect(
+      database.auditEvent.findFirstOrThrow({
+        where: {
+          organizationId,
+          entityType: 'ORGANIZATION_PRODUCT',
+          entityId: created.id,
+          action: 'UPDATED',
+        },
+      }),
+    ).resolves.toMatchObject({
+      changedFields: expect.arrayContaining(['businessCode', 'name', 'manufacturerName']),
+    })
+
+    await expect(
+      repository.update({
+        organizationId,
+        organizationProductId: created.id,
+        version: 1,
+        businessCode: 'P-200022',
+        name: '競合更新',
+        category: '医療材料',
+        origin: '海外製',
+        manufacturerName: '更新後メーカー',
+        manufacturerCountry: 'ドイツ',
+        gtin: '4900000000032',
+        approvalNumber: 'APPROVAL-1',
+        regulatoryCode: 'REGULATORY-1',
+        unit: '箱',
+      }),
+    ).rejects.toThrow('商品は別の操作で更新されています')
+  })
+
+  it('soft deletes only the organization-scoped product and records the deletion', async () => {
+    const created = await repository.register({
+      organizationId,
+      registrationSource: 'MANUAL',
+      businessCode: 'P-200030',
+      name: '削除対象の商品',
+      category: '一般消耗品',
+      origin: '国内製',
+      manufacturerName: '削除対象メーカー',
+      manufacturerCountry: '日本',
+      gtin: '4900000000049',
+      approvalNumber: null,
+      regulatoryCode: null,
+      unit: '個',
+      lookupQuery: null,
+    })
+
+    await expect(
+      repository.archive({
+        organizationId: '00000000-0000-0000-0000-000000000001',
+        organizationProductId: created.id,
+        version: created.version,
+      }),
+    ).rejects.toThrow('商品が見つかりません')
+
+    await repository.archive({ organizationId, organizationProductId: created.id, version: created.version })
+
+    await expect(
+      repository.getById({ organizationId, organizationProductId: created.id }),
+    ).resolves.toBeNull()
+    await expect(repository.list({ organizationId, query: 'P-200030' })).resolves.toMatchObject({ items: [] })
+    await expect(database.product.findUnique({ where: { id: created.productId } })).resolves.not.toBeNull()
+    await expect(
+      database.auditEvent.findFirstOrThrow({
+        where: {
+          organizationId,
+          entityType: 'ORGANIZATION_PRODUCT',
+          entityId: created.id,
+          action: 'DELETED',
+        },
+      }),
+    ).resolves.toMatchObject({ changedFields: ['isActive'] })
+  })
+
   it('rejects duplicate business codes and products already registered to the organization', async () => {
     const existing = await database.organizationProduct.findFirstOrThrow({
       where: { organizationId, product: { gtin: { not: null } } },

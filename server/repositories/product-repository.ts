@@ -1,6 +1,8 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
 
 export type ProductListItem = {
+  id: string
+  version: number
   businessCode: string
   name: string
   category: string
@@ -27,6 +29,19 @@ export type ProductListQuery = {
   origin?: string
   page?: number
   pageSize?: number
+}
+
+export type ProductFields = {
+  businessCode: string
+  name: string
+  category: string
+  origin: string
+  manufacturerName: string
+  manufacturerCountry: string
+  gtin: string | null
+  approvalNumber: string | null
+  regulatoryCode: string | null
+  unit: string
 }
 
 export function createProductRepository(database: PrismaClient) {
@@ -97,6 +112,8 @@ export function createProductRepository(database: PrismaClient) {
       const items: ProductListItem[] = rows.map((row) => {
         const price = row.contractPrices[0]
         return {
+          id: row.id,
+          version: row.version,
           businessCode: row.businessCode,
           name: row.product.name,
           category: row.product.category,
@@ -125,6 +142,155 @@ export function createProductRepository(database: PrismaClient) {
         totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
       }
     },
+    async getById(input: { organizationId: string; organizationProductId: string }) {
+      const row = await database.organizationProduct.findFirst({
+        where: {
+          id: input.organizationProductId,
+          organizationId: input.organizationId,
+          isActive: true,
+        },
+        include: { product: { include: { manufacturer: true } } },
+      })
+      if (!row) return null
+      return {
+        id: row.id,
+        productId: row.productId,
+        version: row.version,
+        businessCode: row.businessCode,
+        name: row.product.name,
+        category: row.product.category,
+        origin: row.product.origin,
+        manufacturerName: row.product.manufacturer.name,
+        manufacturerCountry: row.product.manufacturer.countryName ?? '',
+        gtin: row.product.gtin,
+        approvalNumber: row.product.approvalNumber,
+        regulatoryCode: row.product.regulatoryCode,
+        unit: row.product.unit,
+        completeness: row.completeness,
+        registrationSource: registrationSourceLabel(row.registrationSource),
+      }
+    },
+    async update(
+      input: ProductFields & {
+        organizationId: string
+        organizationProductId: string
+        version: number
+      },
+    ) {
+      const value = validateProductFields(input)
+      try {
+        return await database.$transaction(async (transaction) => {
+          const current = await transaction.organizationProduct.findFirst({
+            where: {
+              id: input.organizationProductId,
+              organizationId: input.organizationId,
+              isActive: true,
+            },
+            include: { product: { include: { manufacturer: true } } },
+          })
+          if (!current) throw new Error('商品が見つかりません')
+          if (current.version !== input.version) throw new Error('商品は別の操作で更新されています')
+
+          const duplicateCode = await transaction.organizationProduct.findFirst({
+            where: {
+              organizationId: input.organizationId,
+              businessCode: value.businessCode,
+              id: { not: current.id },
+            },
+          })
+          if (duplicateCode) throw new Error('この院内コードは登録済みです')
+          if (value.gtin) {
+            const duplicateGtin = await transaction.product.findFirst({
+              where: { gtin: value.gtin, id: { not: current.productId } },
+            })
+            if (duplicateGtin) throw new Error('このGTINは登録済みです')
+          }
+
+          const changedFields = changedProductFields(current, value)
+          if (changedFields.length === 0) throw new Error('変更内容がありません')
+
+          const claimed = await transaction.organizationProduct.updateMany({
+            where: {
+              id: current.id,
+              organizationId: input.organizationId,
+              isActive: true,
+              version: input.version,
+            },
+            data: {
+              businessCode: value.businessCode,
+              completeness: calculateProductCompleteness(value),
+              version: { increment: 1 },
+            },
+          })
+          if (claimed.count !== 1) throw new Error('商品は別の操作で更新されています')
+
+          const manufacturer = await transaction.manufacturer.upsert({
+            where: { name: value.manufacturerName },
+            update: { countryName: value.manufacturerCountry },
+            create: { name: value.manufacturerName, countryName: value.manufacturerCountry },
+          })
+          await transaction.product.update({
+            where: { id: current.productId },
+            data: {
+              name: value.name,
+              category: value.category,
+              origin: value.origin,
+              gtin: value.gtin,
+              approvalNumber: value.approvalNumber,
+              regulatoryCode: value.regulatoryCode,
+              unit: value.unit,
+              manufacturerId: manufacturer.id,
+            },
+          })
+          await transaction.auditEvent.create({
+            data: {
+              organizationId: input.organizationId,
+              entityType: 'ORGANIZATION_PRODUCT',
+              entityId: current.id,
+              action: 'UPDATED',
+              changedFields,
+            },
+          })
+          return { id: current.id, version: input.version + 1 }
+        })
+      } catch (error) {
+        if (isUniqueConstraintError(error)) throw new Error('同じ登録内容がすでに保存されています')
+        throw error
+      }
+    },
+    async archive(input: { organizationId: string; organizationProductId: string; version: number }) {
+      return database.$transaction(async (transaction) => {
+        const current = await transaction.organizationProduct.findFirst({
+          where: {
+            id: input.organizationProductId,
+            organizationId: input.organizationId,
+            isActive: true,
+          },
+        })
+        if (!current) throw new Error('商品が見つかりません')
+        if (current.version !== input.version) throw new Error('商品は別の操作で更新されています')
+
+        const archived = await transaction.organizationProduct.updateMany({
+          where: {
+            id: current.id,
+            organizationId: input.organizationId,
+            isActive: true,
+            version: input.version,
+          },
+          data: { isActive: false, version: { increment: 1 } },
+        })
+        if (archived.count !== 1) throw new Error('商品は別の操作で更新されています')
+        await transaction.auditEvent.create({
+          data: {
+            organizationId: input.organizationId,
+            entityType: 'ORGANIZATION_PRODUCT',
+            entityId: current.id,
+            action: 'DELETED',
+            changedFields: ['isActive'],
+          },
+        })
+      })
+    },
     async register(input: {
       organizationId: string
       registrationSource: 'MANUAL' | 'AI_ASSISTED_DUMMY'
@@ -140,23 +306,10 @@ export function createProductRepository(database: PrismaClient) {
       unit: string
       lookupQuery: string | null
     }) {
-      const value = {
-        businessCode: required(input.businessCode, '院内コード', 40).toUpperCase(),
-        name: required(input.name, '製品名', 120),
-        category: required(input.category, 'カテゴリ', 40),
-        origin: required(input.origin, '製造区分', 40),
-        manufacturerName: required(input.manufacturerName, 'メーカー', 120),
-        manufacturerCountry: required(input.manufacturerCountry, 'メーカー国', 80),
-        gtin: optional(input.gtin, 'GTIN', 14),
-        approvalNumber: optional(input.approvalNumber, '承認番号', 80),
-        regulatoryCode: optional(input.regulatoryCode, '薬価基準・材料コード', 80),
-        unit: required(input.unit, '単位', 40),
-        lookupQuery: optional(input.lookupQuery, '検索語', 120),
-      }
-      if (input.registrationSource === 'AI_ASSISTED_DUMMY' && !value.lookupQuery)
+      const value = validateProductFields(input)
+      const lookupQuery = optional(input.lookupQuery, '検索語', 120)
+      if (input.registrationSource === 'AI_ASSISTED_DUMMY' && !lookupQuery)
         throw new Error('検索語を確認してください')
-      if (value.gtin && !/^\d{8,14}$/.test(value.gtin))
-        throw new Error('GTINは8〜14桁の数字で入力してください')
 
       try {
         return await database.$transaction(async (transaction) => {
@@ -225,12 +378,12 @@ export function createProductRepository(database: PrismaClient) {
             },
           })
 
-          const normalizedQuery = value.lookupQuery ? normalize(value.lookupQuery) : null
-          if (normalizedQuery && normalizedQuery !== normalize(product.name)) {
+          const normalizedQuery = lookupQuery ? normalize(lookupQuery) : null
+          if (normalizedQuery && lookupQuery && normalizedQuery !== normalize(product.name)) {
             await transaction.productAlias.create({
               data: {
                 organizationProductId: organizationProduct.id,
-                name: value.lookupQuery!,
+                name: lookupQuery,
                 normalizedName: normalizedQuery,
               },
             })
@@ -245,6 +398,69 @@ export function createProductRepository(database: PrismaClient) {
       }
     },
   }
+}
+
+function validateProductFields(input: ProductFields): ProductFields {
+  const value = {
+    businessCode: required(input.businessCode, '院内コード', 40).toUpperCase(),
+    name: required(input.name, '製品名', 120),
+    category: required(input.category, 'カテゴリ', 40),
+    origin: required(input.origin, '製造区分', 40),
+    manufacturerName: required(input.manufacturerName, 'メーカー', 120),
+    manufacturerCountry: required(input.manufacturerCountry, 'メーカー国', 80),
+    gtin: optional(input.gtin, 'GTIN', 14),
+    approvalNumber: optional(input.approvalNumber, '承認番号', 80),
+    regulatoryCode: optional(input.regulatoryCode, '薬価基準・材料コード', 80),
+    unit: required(input.unit, '単位', 40),
+  }
+  if (value.gtin && !/^\d{8,14}$/.test(value.gtin)) throw new Error('GTINは8〜14桁の数字で入力してください')
+  return value
+}
+
+function changedProductFields(
+  current: {
+    businessCode: string
+    product: {
+      name: string
+      category: string
+      origin: string
+      gtin: string | null
+      approvalNumber: string | null
+      regulatoryCode: string | null
+      unit: string
+      manufacturer: { name: string; countryName: string | null }
+    }
+  },
+  value: ProductFields,
+) {
+  const values: Record<string, [string | null, string | null]> = {
+    businessCode: [current.businessCode, value.businessCode],
+    name: [current.product.name, value.name],
+    category: [current.product.category, value.category],
+    origin: [current.product.origin, value.origin],
+    manufacturerName: [current.product.manufacturer.name, value.manufacturerName],
+    manufacturerCountry: [current.product.manufacturer.countryName, value.manufacturerCountry],
+    gtin: [current.product.gtin, value.gtin],
+    approvalNumber: [current.product.approvalNumber, value.approvalNumber],
+    regulatoryCode: [current.product.regulatoryCode, value.regulatoryCode],
+    unit: [current.product.unit, value.unit],
+  }
+  return Object.entries(values)
+    .filter(([, [before, after]]) => before !== after)
+    .map(([field]) => field)
+}
+
+function calculateProductCompleteness(value: ProductFields) {
+  return calculateCompleteness({
+    name: value.name,
+    category: value.category,
+    origin: value.origin,
+    manufacturerName: value.manufacturerName,
+    unit: value.unit,
+    gtin: value.gtin,
+    approvalNumber: value.approvalNumber,
+    regulatoryCode: value.regulatoryCode,
+  })
 }
 
 function required(value: string, label: string, maxLength: number) {

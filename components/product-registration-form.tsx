@@ -1,4 +1,7 @@
+'use client'
+
 import { PackagePlus } from 'lucide-react'
+import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,6 +24,7 @@ type ProductRegistrationFormProps = {
   submitLabel: string
   lookupQuery?: string
   initialValue?: ProductRegistrationValue
+  disableUntilChanged?: boolean
 }
 
 export function ProductRegistrationForm({
@@ -28,9 +32,24 @@ export function ProductRegistrationForm({
   submitLabel,
   lookupQuery,
   initialValue = {},
+  disableUntilChanged = false,
 }: ProductRegistrationFormProps) {
+  const [changed, setChanged] = useState(false)
+  const initialFields = productFieldValues(initialValue)
+
   return (
-    <form action={action} className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <form
+      action={action}
+      className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+      onChange={(event) => {
+        const formData = new FormData(event.currentTarget)
+        setChanged(
+          Object.entries(initialFields).some(
+            ([name, initial]) => String(formData.get(name) ?? '') !== initial,
+          ),
+        )
+      }}
+    >
       {lookupQuery ? <input type="hidden" name="lookupQuery" value={lookupQuery} /> : null}
       <label className="grid min-w-0 gap-1 text-xs md:col-span-2">
         製品名
@@ -99,11 +118,31 @@ export function ProductRegistrationForm({
         <Input name="regulatoryCode" defaultValue={initialValue.regulatoryCode ?? ''} maxLength={80} />
       </label>
       <div className="border-border/70 flex justify-end border-t pt-4 md:col-span-2 xl:col-span-4">
-        <Button type="submit" size="lg" className="w-full sm:w-auto sm:min-w-40">
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full sm:w-auto sm:min-w-40"
+          disabled={disableUntilChanged && !changed}
+        >
           <PackagePlus aria-hidden="true" />
           {submitLabel}
         </Button>
       </div>
     </form>
   )
+}
+
+function productFieldValues(value: ProductRegistrationValue) {
+  return {
+    name: value.name ?? '',
+    businessCode: value.businessCode ?? '',
+    unit: value.unit ?? '',
+    manufacturerName: value.manufacturerName ?? '',
+    manufacturerCountry: value.manufacturerCountry ?? '',
+    origin: value.origin ?? '国内製',
+    category: value.category ?? '医療材料',
+    gtin: value.gtin ?? '',
+    approvalNumber: value.approvalNumber ?? '',
+    regulatoryCode: value.regulatoryCode ?? '',
+  }
 }

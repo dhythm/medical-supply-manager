@@ -1,4 +1,4 @@
-import { cleanup, render } from '@testing-library/react'
+import { cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { ProductRegistrationForm } from '@/components/product-registration-form'
@@ -29,5 +29,26 @@ describe('ProductRegistrationForm', () => {
 
     expect(getByLabelText('製品名')).toHaveValue('滅菌ドレッシング')
     expect(container.querySelector('input[name="lookupQuery"]')).toHaveValue('ドレッシング')
+  })
+
+  it('enables an edit submit button only while values differ from the initial product', () => {
+    const { getByLabelText, getByRole } = render(
+      <ProductRegistrationForm
+        action={() => undefined}
+        submitLabel="変更を保存"
+        disableUntilChanged
+        initialValue={{ name: '滅菌ドレッシング' }}
+      />,
+    )
+    const button = getByRole('button', { name: '変更を保存' })
+    const name = getByLabelText('製品名')
+
+    expect(button).toBeDisabled()
+
+    fireEvent.change(name, { target: { value: '滅菌ドレッシング 改訂版' } })
+    expect(button).toBeEnabled()
+
+    fireEvent.change(name, { target: { value: '滅菌ドレッシング' } })
+    expect(button).toBeDisabled()
   })
 })

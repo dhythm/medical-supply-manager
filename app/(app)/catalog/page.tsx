@@ -22,6 +22,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   const origin = singleValue(params.origin)
   const page = Math.max(1, Number(singleValue(params.page) ?? '1') || 1)
   const registered = singleValue(params.registered) === '1'
+  const deleted = singleValue(params.deleted) === '1'
   const organization = await getCurrentOrganization()
   const repository = createProductRepository(getDatabaseClient())
   const [result, summary] = await Promise.all([
@@ -45,6 +46,11 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
         {registered ? (
           <p className="border-primary/30 bg-primary/5 text-primary rounded-lg border px-4 py-3 text-sm">
             商品を登録しました
+          </p>
+        ) : null}
+        {deleted ? (
+          <p className="border-primary/30 bg-primary/5 text-primary rounded-lg border px-4 py-3 text-sm">
+            商品を削除しました
           </p>
         ) : null}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

@@ -1,8 +1,9 @@
-import { Search } from 'lucide-react'
+import { Pencil, Search } from 'lucide-react'
 import Link from 'next/link'
 
 import { MeterBar } from '@/components/shared'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { ProductListItem } from '@/server/repositories/product-repository'
@@ -93,6 +94,7 @@ export function CatalogTable({
               <TableHead>供給</TableHead>
               <TableHead className="min-w-32">マスタ充足</TableHead>
               <TableHead>登録経路</TableHead>
+              <TableHead className="w-24 text-right">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -138,11 +140,22 @@ export function CatalogTable({
                   </span>
                 </TableCell>
                 <TableCell className="align-top text-xs">{item.registrationSource}</TableCell>
+                <TableCell className="align-top text-right">
+                  <Button
+                    nativeButton={false}
+                    render={<Link href={`/catalog/${item.id}/edit`} aria-label={`${item.name}を編集`} />}
+                    variant="ghost"
+                    size="sm"
+                  >
+                    <Pencil aria-hidden="true" />
+                    編集
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
             {items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-muted-foreground h-32 text-center">
+                <TableCell colSpan={8} className="text-muted-foreground h-32 text-center">
                   該当する商品はありません
                 </TableCell>
               </TableRow>
