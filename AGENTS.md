@@ -93,4 +93,3 @@ fad research, exploration, and parallel analysis to subagents
 
 - use `pnpm` as a package manager
 - use `vitest` for testing
-

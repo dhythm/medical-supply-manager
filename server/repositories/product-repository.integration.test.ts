@@ -37,8 +37,11 @@ describe('product repository', () => {
     await database.$disconnect()
   })
 
-  it('seeds the demonstration catalog idempotently', async () => {
+  it('seeds the sample catalog idempotently', async () => {
     await expect(database.organizationProduct.count({ where: { organizationId } })).resolves.toBe(8)
+    await expect(
+      database.organizationProduct.count({ where: { organizationId, registrationSource: 'SAMPLE' } }),
+    ).resolves.toBe(8)
   })
 
   it('searches by name, GTIN, approval number, and business code', async () => {

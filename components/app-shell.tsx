@@ -18,22 +18,28 @@ const navGroups = [
   {
     label: '購買業務',
     items: [
-      { href: '/', label: 'ダッシュボード', icon: LayoutDashboard },
-      { href: '/catalog', label: '商品マスタ', icon: Boxes },
-      { href: '/group-buying', label: '共同購入・価格', icon: HeartHandshake },
+      { href: '/', label: 'ダッシュボード', icon: LayoutDashboard, ready: true },
+      { href: '/catalog', label: '商品マスタ', icon: Boxes, ready: true },
+      { href: '/group-buying', label: '共同購入・価格', icon: HeartHandshake, ready: false },
     ],
   },
   {
     label: '連携・活用',
     items: [
-      { href: '/emr', label: '電子カルテ連携', icon: Stethoscope },
-      { href: '/insights', label: 'データガバナンス', icon: Database },
-      { href: '/voice', label: '顧客の声', icon: MessagesSquare },
+      { href: '/emr', label: '電子カルテ連携', icon: Stethoscope, ready: false },
+      { href: '/insights', label: 'データガバナンス', icon: Database, ready: false },
+      { href: '/voice', label: '顧客の声', icon: MessagesSquare, ready: false },
     ],
   },
 ]
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+  organization,
+}: {
+  children: React.ReactNode
+  organization: { name: string; facilityCount: number; bedCount: number }
+}) {
   const pathname = usePathname()
 
   return (
@@ -76,6 +82,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     {active ? <span className="bg-sidebar-primary absolute inset-y-2 left-0 w-0.5 rounded-full" /> : null}
                     <Icon className={cn('size-4 shrink-0', active && 'text-sidebar-primary')} aria-hidden="true" />
                     <span className="whitespace-nowrap font-medium">{item.label}</span>
+                    {!item.ready ? (
+                      <span className="text-sidebar-foreground/40 ml-auto hidden text-[10px] lg:inline">準備中</span>
+                    ) : null}
                   </Link>
                 )
               })}
@@ -89,8 +98,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Building2 className="size-4" aria-hidden="true" />
             </span>
             <div>
-              <p className="text-xs font-medium">城南医療グループ</p>
-              <p className="text-sidebar-foreground/45 mt-0.5 text-[11px]">4施設 ・ 949床</p>
+              <p className="text-xs font-medium">{organization.name}</p>
+              <p className="text-sidebar-foreground/45 mt-0.5 text-[11px]">
+                {organization.facilityCount}施設 ・ {organization.bedCount.toLocaleString('ja-JP')}床
+              </p>
             </div>
           </div>
         </div>

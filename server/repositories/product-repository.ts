@@ -111,7 +111,7 @@ export function createProductRepository(database: PrismaClient) {
           contractPriceYen: price?.contractPriceYen ?? 0,
           distributorName: price?.distributor.name ?? '—',
           completeness: row.completeness,
-          registrationSource: row.registrationSource === 'DEMO' ? 'デモデータ' : row.registrationSource,
+          registrationSource: row.registrationSource === 'SAMPLE' ? 'サンプルデータ' : row.registrationSource,
           updatedAt: row.updatedAt.toISOString().slice(0, 10),
           usedInEmr: row.usedInEmr,
         }

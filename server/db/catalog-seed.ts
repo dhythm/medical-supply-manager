@@ -1,6 +1,6 @@
 import type { PrismaClient } from '@prisma/client'
 
-import { products } from '@/lib/mock-data'
+import { sampleCatalog } from '@/server/db/sample-catalog'
 
 const distributorCode = new Map([
   ['メディセオ', 'MEDISEO'],
@@ -13,31 +13,31 @@ const distributorCode = new Map([
 export async function seedCatalogDatabase(database: PrismaClient) {
   const organization = await database.organization.findUniqueOrThrow({ where: { code: 'JONAN' } })
 
-  for (const item of products) {
+  for (const item of sampleCatalog) {
     const manufacturer = await database.manufacturer.upsert({
-      where: { name: item.maker },
-      update: { countryName: item.makerCountry },
-      create: { name: item.maker, countryName: item.makerCountry },
+      where: { name: item.manufacturerName },
+      update: { countryName: item.manufacturerCountry },
+      create: { name: item.manufacturerName, countryName: item.manufacturerCountry },
     })
 
     const product = await database.product.upsert({
-      where: { gtin: item.jan },
+      where: { gtin: item.gtin },
       update: {
         name: item.name,
         category: item.category,
         origin: item.origin,
-        approvalNumber: item.approvalNo === '—' ? null : item.approvalNo,
-        regulatoryCode: item.regulatoryCode === '—' ? null : item.regulatoryCode,
+        approvalNumber: item.approvalNumber,
+        regulatoryCode: item.regulatoryCode,
         unit: item.unit,
         manufacturerId: manufacturer.id,
       },
       create: {
-        gtin: item.jan,
+        gtin: item.gtin,
         name: item.name,
         category: item.category,
         origin: item.origin,
-        approvalNumber: item.approvalNo === '—' ? null : item.approvalNo,
-        regulatoryCode: item.regulatoryCode === '—' ? null : item.regulatoryCode,
+        approvalNumber: item.approvalNumber,
+        regulatoryCode: item.regulatoryCode,
         unit: item.unit,
         manufacturerId: manufacturer.id,
       },
@@ -47,12 +47,12 @@ export async function seedCatalogDatabase(database: PrismaClient) {
       where: {
         organizationId_businessCode: {
           organizationId: organization.id,
-          businessCode: item.id,
+          businessCode: item.businessCode,
         },
       },
       update: {
         productId: product.id,
-        registrationSource: 'DEMO',
+        registrationSource: 'SAMPLE',
         completeness: item.completeness,
         usedInEmr: item.usedInEmr,
         isActive: true,
@@ -60,8 +60,8 @@ export async function seedCatalogDatabase(database: PrismaClient) {
       create: {
         organizationId: organization.id,
         productId: product.id,
-        businessCode: item.id,
-        registrationSource: 'DEMO',
+        businessCode: item.businessCode,
+        registrationSource: 'SAMPLE',
         completeness: item.completeness,
         usedInEmr: item.usedInEmr,
       },
@@ -71,14 +71,14 @@ export async function seedCatalogDatabase(database: PrismaClient) {
       where: {
         organizationId_code: {
           organizationId: organization.id,
-          code: distributorCode.get(item.distributor) ?? item.distributor,
+          code: distributorCode.get(item.distributorName) ?? item.distributorName,
         },
       },
-      update: { name: item.distributor },
+      update: { name: item.distributorName },
       create: {
         organizationId: organization.id,
-        code: distributorCode.get(item.distributor) ?? item.distributor,
-        name: item.distributor,
+        code: distributorCode.get(item.distributorName) ?? item.distributorName,
+        name: item.distributorName,
       },
     })
 
@@ -91,14 +91,14 @@ export async function seedCatalogDatabase(database: PrismaClient) {
         },
       },
       update: {
-        listPriceYen: item.listPrice,
-        contractPriceYen: item.contractPrice,
+        listPriceYen: item.listPriceYen,
+        contractPriceYen: item.contractPriceYen,
       },
       create: {
         organizationProductId: organizationProduct.id,
         distributorId: distributor.id,
-        listPriceYen: item.listPrice,
-        contractPriceYen: item.contractPrice,
+        listPriceYen: item.listPriceYen,
+        contractPriceYen: item.contractPriceYen,
         validFrom: new Date('2026-01-01T00:00:00.000Z'),
       },
     })
