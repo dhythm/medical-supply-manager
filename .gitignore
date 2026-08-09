@@ -29,4 +29,7 @@ next-env.d.ts
 
 /tasks/
 
+# generated demo media
+/artifacts/
+
 .DS_Store
