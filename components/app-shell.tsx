@@ -20,7 +20,7 @@ const navGroups = [
     items: [
       { href: '/', label: 'ダッシュボード', icon: LayoutDashboard, ready: true },
       { href: '/catalog', label: '商品マスタ', icon: Boxes, ready: true },
-      { href: '/group-buying', label: '共同購入・価格', icon: HeartHandshake, ready: false },
+      { href: '/group-buying', label: '共同購入・価格', icon: HeartHandshake, ready: true },
     ],
   },
   {
