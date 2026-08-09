@@ -6,7 +6,6 @@ export const metadata: Metadata = {
   title: 'MEDIBASE | 医療材料・医薬品マスタ統合基盤',
   description:
     '製品名を入力するだけでAIが公的認可情報・メーカー情報を収集し商品マスタを自動生成。共同購入、電子カルテ連携、需要インサイトまでを一つの基盤で。',
-  generator: 'v0.app',
   icons: {
     icon: [
       {
