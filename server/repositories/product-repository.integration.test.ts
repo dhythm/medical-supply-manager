@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createDatabaseClient } from '@/server/db/client'
 import { seedCatalogDatabase } from '@/server/db/catalog-seed'
 import { seedDatabase } from '@/server/db/seed'
+import { resetDatabase } from '@/server/db/test-reset'
 import { createProductRepository } from '@/server/repositories/product-repository'
 
 const databaseUrl =
@@ -16,14 +17,7 @@ describe('product repository', () => {
   let organizationId = ''
 
   beforeAll(async () => {
-    await database.contractPrice.deleteMany()
-    await database.productAlias.deleteMany()
-    await database.organizationProduct.deleteMany()
-    await database.distributor.deleteMany()
-    await database.product.deleteMany()
-    await database.manufacturer.deleteMany()
-    await database.facility.deleteMany()
-    await database.organization.deleteMany()
+    await resetDatabase(database)
 
     await seedDatabase(database)
     await seedCatalogDatabase(database)

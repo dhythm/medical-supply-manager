@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createDatabaseClient } from '@/server/db/client'
 import { checkDatabaseConnection } from '@/server/db/health'
 import { seedDatabase } from '@/server/db/seed'
+import { resetDatabase } from '@/server/db/test-reset'
 
 const databaseUrl =
   process.env.TEST_DATABASE_URL ??
@@ -12,13 +13,7 @@ const database = createDatabaseClient(databaseUrl)
 
 describe('database foundation', () => {
   beforeAll(async () => {
-    await database.contractPrice.deleteMany()
-    await database.organizationProduct.deleteMany()
-    await database.distributor.deleteMany()
-    await database.product.deleteMany()
-    await database.manufacturer.deleteMany()
-    await database.facility.deleteMany()
-    await database.organization.deleteMany()
+    await resetDatabase(database)
   })
 
   afterAll(async () => {

@@ -15,19 +15,26 @@ model Organization {
   facilities           Facility[]
   organizationProducts OrganizationProduct[]
   distributors         Distributor[]
+  priceNegotiations    PriceNegotiation[]
+  emrConnections       EmrConnection[]
+  dataAssets           DataAsset[]
+  auditEvents          AuditEvent[]
+  customerFeedbacks    CustomerFeedback[]
 
   @@map("organizations")
 }
 
 model Facility {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @map("organization_id") @db.Uuid
-  code           String
-  name           String
-  bedCount       Int          @default(0) @map("bed_count")
-  createdAt      DateTime     @default(now()) @map("created_at")
-  updatedAt      DateTime     @updatedAt @map("updated_at")
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  id                 String              @id @default(uuid()) @db.Uuid
+  organizationId     String              @map("organization_id") @db.Uuid
+  code               String
+  name               String
+  bedCount           Int                 @default(0) @map("bed_count")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  negotiationDemands NegotiationDemand[]
+  emrConnection      EmrConnection?
 
   @@unique([organizationId, code])
   @@index([organizationId])
@@ -66,21 +73,22 @@ model Product {
 }
 
 model OrganizationProduct {
-  id                 String          @id @default(uuid()) @db.Uuid
-  organizationId     String          @map("organization_id") @db.Uuid
-  productId          String          @map("product_id") @db.Uuid
-  businessCode       String          @map("business_code")
-  registrationSource String          @default("MANUAL") @map("registration_source")
-  completeness       Int             @default(0)
-  usedInEmr          Boolean         @default(false) @map("used_in_emr")
-  isActive           Boolean         @default(true) @map("is_active")
-  version            Int             @default(1)
-  createdAt          DateTime        @default(now()) @map("created_at")
-  updatedAt          DateTime        @updatedAt @map("updated_at")
-  organization       Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  product            Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  id                 String             @id @default(uuid()) @db.Uuid
+  organizationId     String             @map("organization_id") @db.Uuid
+  productId          String             @map("product_id") @db.Uuid
+  businessCode       String             @map("business_code")
+  registrationSource String             @default("MANUAL") @map("registration_source")
+  completeness       Int                @default(0)
+  usedInEmr          Boolean            @default(false) @map("used_in_emr")
+  isActive           Boolean            @default(true) @map("is_active")
+  version            Int                @default(1)
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+  organization       Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  product            Product            @relation(fields: [productId], references: [id], onDelete: Restrict)
   aliases            ProductAlias[]
   contractPrices     ContractPrice[]
+  priceNegotiations  PriceNegotiation[]
 
   @@unique([organizationId, businessCode])
   @@unique([organizationId, productId])
@@ -100,14 +108,15 @@ model ProductAlias {
 }
 
 model Distributor {
-  id             String          @id @default(uuid()) @db.Uuid
-  organizationId String          @map("organization_id") @db.Uuid
-  code           String
-  name           String
-  createdAt      DateTime        @default(now()) @map("created_at")
-  updatedAt      DateTime        @updatedAt @map("updated_at")
-  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  contractPrices ContractPrice[]
+  id                String             @id @default(uuid()) @db.Uuid
+  organizationId    String             @map("organization_id") @db.Uuid
+  code              String
+  name              String
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  contractPrices    ContractPrice[]
+  negotiationQuotes NegotiationQuote[]
 
   @@unique([organizationId, code])
   @@index([organizationId])
@@ -129,4 +138,290 @@ model ContractPrice {
   @@unique([organizationProductId, distributorId, validFrom])
   @@index([organizationProductId, validFrom, validTo])
   @@map("contract_prices")
+}
+
+enum PriceNegotiationStatus {
+  DRAFT
+  COLLECTING_QUOTES
+  NEGOTIATING
+  COMPLETED
+  CANCELLED
+}
+
+model PriceNegotiation {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  organizationId        String                 @map("organization_id") @db.Uuid
+  organizationProductId String                 @map("organization_product_id") @db.Uuid
+  title                 String
+  baselineUnitPriceYen  Int?                   @map("baseline_unit_price_yen")
+  targetUnitPriceYen    Int?                   @map("target_unit_price_yen")
+  status                PriceNegotiationStatus @default(DRAFT)
+  quoteDueDate          DateTime?              @map("quote_due_date") @db.Date
+  contractValidFrom     DateTime?              @map("contract_valid_from") @db.Date
+  completedAt           DateTime?              @map("completed_at")
+  isSample              Boolean                @default(false) @map("is_sample")
+  version               Int                    @default(1)
+  createdAt             DateTime               @default(now()) @map("created_at")
+  updatedAt             DateTime               @updatedAt @map("updated_at")
+  organization          Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organizationProduct   OrganizationProduct    @relation(fields: [organizationProductId], references: [id], onDelete: Restrict)
+  demands               NegotiationDemand[]
+  quotes                NegotiationQuote[]
+
+  @@index([organizationId, status])
+  @@index([organizationProductId])
+  @@map("price_negotiations")
+}
+
+model NegotiationDemand {
+  id            String           @id @default(uuid()) @db.Uuid
+  negotiationId String           @map("negotiation_id") @db.Uuid
+  facilityId    String           @map("facility_id") @db.Uuid
+  quantity      Int
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  negotiation   PriceNegotiation @relation(fields: [negotiationId], references: [id], onDelete: Cascade)
+  facility      Facility         @relation(fields: [facilityId], references: [id], onDelete: Restrict)
+
+  @@unique([negotiationId, facilityId])
+  @@index([facilityId])
+  @@map("negotiation_demands")
+}
+
+model NegotiationQuote {
+  id              String           @id @default(uuid()) @db.Uuid
+  negotiationId   String           @map("negotiation_id") @db.Uuid
+  distributorId   String           @map("distributor_id") @db.Uuid
+  roundNumber     Int              @default(1) @map("round_number")
+  unitPriceYen    Int              @map("unit_price_yen")
+  minimumQuantity Int?             @map("minimum_quantity")
+  submittedAt     DateTime         @default(now()) @map("submitted_at")
+  validTo         DateTime?        @map("valid_to") @db.Date
+  note            String?
+  isSelected      Boolean          @default(false) @map("is_selected")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  negotiation     PriceNegotiation @relation(fields: [negotiationId], references: [id], onDelete: Cascade)
+  distributor     Distributor      @relation(fields: [distributorId], references: [id], onDelete: Restrict)
+
+  @@unique([negotiationId, distributorId, roundNumber])
+  @@index([negotiationId, unitPriceYen])
+  @@map("negotiation_quotes")
+}
+
+enum EmrDeploymentType {
+  CLOUD
+  ON_PREMISES
+}
+
+enum EmrTransport {
+  REST_API
+  SS_MIX2
+  SFTP
+  CSV_BATCH
+}
+
+enum EmrDirection {
+  INBOUND_ONLY
+  BIDIRECTIONAL
+}
+
+enum EmrConnectionStatus {
+  DRAFT
+  READY
+  PAUSED
+}
+
+enum EmrSyncStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+model EmrConnection {
+  id             String              @id @default(uuid()) @db.Uuid
+  organizationId String              @map("organization_id") @db.Uuid
+  facilityId     String              @unique @map("facility_id") @db.Uuid
+  vendorName     String              @map("vendor_name")
+  systemName     String              @map("system_name")
+  deploymentType EmrDeploymentType   @map("deployment_type")
+  transport      EmrTransport
+  direction      EmrDirection        @default(INBOUND_ONLY)
+  endpointUrl    String?             @map("endpoint_url")
+  schedule       String?
+  status         EmrConnectionStatus @default(DRAFT)
+  archivedAt     DateTime?           @map("archived_at")
+  isSample       Boolean             @default(false) @map("is_sample")
+  version        Int                 @default(1)
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  facility       Facility            @relation(fields: [facilityId], references: [id], onDelete: Restrict)
+  syncRuns       EmrSyncRun[]
+
+  @@index([organizationId, archivedAt, status])
+  @@map("emr_connections")
+}
+
+model EmrSyncRun {
+  id            String        @id @default(uuid()) @db.Uuid
+  connectionId  String        @map("connection_id") @db.Uuid
+  externalRunId String?       @map("external_run_id")
+  status        EmrSyncStatus
+  startedAt     DateTime      @map("started_at")
+  finishedAt    DateTime?     @map("finished_at")
+  receivedCount Int           @default(0) @map("received_count")
+  rejectedCount Int           @default(0) @map("rejected_count")
+  errorCode     String?       @map("error_code")
+  errorMessage  String?       @map("error_message")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  connection    EmrConnection @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+
+  @@unique([connectionId, externalRunId])
+  @@index([connectionId, startedAt(sort: Desc)])
+  @@map("emr_sync_runs")
+}
+
+enum DataAssetCategory {
+  MASTER
+  PROCUREMENT
+  CUSTOMER_FEEDBACK
+  EMR_AGGREGATE
+}
+
+enum DataClassification {
+  INTERNAL
+  CONFIDENTIAL
+}
+
+enum DataAssetReviewOutcome {
+  APPROVED
+  ACTION_REQUIRED
+}
+
+enum AuditActorKind {
+  OPERATOR
+  SYSTEM
+}
+
+model DataAsset {
+  id                 String             @id @default(uuid()) @db.Uuid
+  organizationId     String             @map("organization_id") @db.Uuid
+  code               String
+  name               String
+  category           DataAssetCategory
+  classification     DataClassification
+  purpose            String
+  retentionDays      Int?               @map("retention_days")
+  reviewIntervalDays Int                @default(365) @map("review_interval_days")
+  lastReviewedAt     DateTime?          @map("last_reviewed_at")
+  nextReviewAt       DateTime           @map("next_review_at") @db.Date
+  archivedAt         DateTime?          @map("archived_at")
+  isSample           Boolean            @default(false) @map("is_sample")
+  version            Int                @default(1)
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+  organization       Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  reviews            DataAssetReview[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId, archivedAt, nextReviewAt])
+  @@map("data_assets")
+}
+
+model DataAssetReview {
+  id           String                 @id @default(uuid()) @db.Uuid
+  dataAssetId  String                 @map("data_asset_id") @db.Uuid
+  outcome      DataAssetReviewOutcome
+  note         String?
+  reviewedAt   DateTime               @default(now()) @map("reviewed_at")
+  nextReviewAt DateTime               @map("next_review_at") @db.Date
+  dataAsset    DataAsset              @relation(fields: [dataAssetId], references: [id], onDelete: Restrict)
+
+  @@index([dataAssetId, reviewedAt(sort: Desc)])
+  @@map("data_asset_reviews")
+}
+
+model AuditEvent {
+  id             String         @id @default(uuid()) @db.Uuid
+  organizationId String         @map("organization_id") @db.Uuid
+  entityType     String         @map("entity_type")
+  entityId       String         @map("entity_id") @db.Uuid
+  action         String
+  changedFields  String[]       @default([]) @map("changed_fields")
+  actorKind      AuditActorKind @default(OPERATOR) @map("actor_kind")
+  occurredAt     DateTime       @default(now()) @map("occurred_at")
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, occurredAt(sort: Desc)])
+  @@index([organizationId, entityType, entityId])
+  @@map("audit_events")
+}
+
+enum FeedbackSource {
+  EXHIBITION
+  CUSTOMER_VISIT
+  INTERVIEW
+  SUPPORT
+  OTHER
+}
+
+enum FeedbackDepartment {
+  PROCUREMENT
+  PHARMACY
+  CLINICAL
+  MANAGEMENT
+  OTHER
+}
+
+enum FeedbackImpact {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum FeedbackStatus {
+  NEW
+  REVIEWING
+  PLANNED
+  COMPLETED
+  DECLINED
+}
+
+model CustomerFeedback {
+  id             String                         @id @default(uuid()) @db.Uuid
+  organizationId String                         @map("organization_id") @db.Uuid
+  title          String                         @db.VarChar(120)
+  summary        String                         @db.VarChar(1000)
+  source         FeedbackSource
+  department     FeedbackDepartment
+  impact         FeedbackImpact
+  status         FeedbackStatus                 @default(NEW)
+  capturedAt     DateTime                       @map("captured_at") @db.Date
+  archivedAt     DateTime?                      @map("archived_at")
+  isSample       Boolean                        @default(false) @map("is_sample")
+  version        Int                            @default(1)
+  createdAt      DateTime                       @default(now()) @map("created_at")
+  updatedAt      DateTime                       @updatedAt @map("updated_at")
+  organization   Organization                   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  statusChanges  CustomerFeedbackStatusChange[]
+
+  @@index([organizationId, archivedAt, status, capturedAt])
+  @@index([organizationId, impact])
+  @@map("customer_feedbacks")
+}
+
+model CustomerFeedbackStatusChange {
+  id                 String           @id @default(uuid()) @db.Uuid
+  customerFeedbackId String           @map("customer_feedback_id") @db.Uuid
+  fromStatus         FeedbackStatus?  @map("from_status")
+  toStatus           FeedbackStatus   @map("to_status")
+  reason             String?          @db.VarChar(240)
+  changedAt          DateTime         @default(now()) @map("changed_at")
+  customerFeedback   CustomerFeedback @relation(fields: [customerFeedbackId], references: [id], onDelete: Restrict)
+
+  @@index([customerFeedbackId, changedAt(sort: Desc)])
+  @@map("customer_feedback_status_changes")
 }
