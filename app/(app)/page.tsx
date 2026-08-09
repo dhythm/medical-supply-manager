@@ -3,7 +3,6 @@ import {
   CheckCircle2,
   CircleAlert,
   FileWarning,
-  Sparkles,
   TriangleAlert,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -16,11 +15,11 @@ import { originShare, registrationQueue, workloadBreakdown } from '@/lib/mock-da
 
 const actionItems = [
   {
-    label: 'AI登録案の承認',
-    count: 12,
-    detail: '高一致度 9件',
-    href: '/registration',
-    icon: Sparkles,
+    label: '商品マスタの確認',
+    count: 8,
+    detail: '登録内容を確認',
+    href: '/catalog',
+    icon: CheckCircle2,
     tone: 'primary',
   },
   {
@@ -35,7 +34,7 @@ const actionItems = [
     label: '重複候補の解消',
     count: 3,
     detail: '既存マスタと類似',
-    href: '/registration',
+    href: '/catalog',
     icon: CircleAlert,
     tone: 'neutral',
   },
@@ -48,9 +47,9 @@ export default function DashboardPage() {
         eyebrow="城南医療グループ / 8月9日"
         title="購買ダッシュボード"
         actions={
-          <Button nativeButton={false} render={<Link href="/registration" />}>
-            <Sparkles className="size-4" aria-hidden="true" />
-            商品を登録
+          <Button nativeButton={false} render={<Link href="/catalog" />}>
+            商品マスタを見る
+            <ArrowRight className="size-4" aria-hidden="true" />
           </Button>
         }
       />
@@ -97,7 +96,7 @@ export default function DashboardPage() {
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="登録済み商品" value="48,219" delta="今月 +1,204" />
-          <StatCard label="AI登録率" value="76.4%" delta="前月比 +11.2pt" tone="up" />
+          <StatCard label="マスタ充足率" value="89.1%" delta="要確認 312件" tone="warn" />
           <StatCard label="確認を含む登録時間" value="2.4分" delta="手入力比 −87%" tone="up" />
           <StatCard label="要確認マスタ" value="312件" delta="承認番号・単位" tone="warn" />
         </div>

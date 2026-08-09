@@ -7,7 +7,6 @@ import {
   HeartHandshake,
   LayoutDashboard,
   MessagesSquare,
-  Sparkles,
   Stethoscope,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -20,7 +19,6 @@ const navGroups = [
     label: '購買業務',
     items: [
       { href: '/', label: 'ダッシュボード', icon: LayoutDashboard },
-      { href: '/registration', label: 'AI商品登録', icon: Sparkles },
       { href: '/catalog', label: '商品マスタ', icon: Boxes },
       { href: '/group-buying', label: '共同購入・価格', icon: HeartHandshake },
     ],
