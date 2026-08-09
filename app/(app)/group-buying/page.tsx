@@ -21,12 +21,11 @@ export default function GroupBuyingPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Group Purchasing"
-        title="価格の妥当性を、卸に聞かなくても分かる状態にする"
-        description="参加施設の購買実績を匿名で集約し、品目ごとのベンチマーク価格と交渉余地を提示します。共同購入のボリュームを根拠にした価格交渉と、卸依存度の可視化までを同じ画面で扱います。"
+        eyebrow="調達分析"
+        title="共同購入・価格交渉"
       />
 
-      <div className="grid gap-4 px-5 py-6 md:px-8 md:py-8">
+      <div className="mx-auto grid max-w-[1440px] gap-5 px-5 py-6 md:px-8 md:py-8">
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="参加施設" value="24" delta="城南医療グループ 他8法人" />
           <StatCard label="対象品目" value="1,208" delta="年間取引額 18.4億円" />

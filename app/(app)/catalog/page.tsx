@@ -6,11 +6,10 @@ export default function CatalogPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Master Database"
-        title="医薬品・医材・機器を、同じ粒度で引ける"
-        description="認可情報・機能区分コード・GS1コードを軸に正規化した統合マスタ。メーカー数と製品数が多い医材でも、原産国や代替品まで含めて横断検索できます。"
+        eyebrow="商品管理"
+        title="商品マスタ"
       />
-      <div className="grid gap-4 px-5 py-6 md:px-8 md:py-8">
+      <div className="mx-auto grid max-w-[1440px] gap-5 px-5 py-6 md:px-8 md:py-8">
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="医薬品" value="21,480" delta="薬価コード紐付け 99.2%" />
           <StatCard label="医療材料" value="19,336" delta="機能区分紐付け 94.7%" />

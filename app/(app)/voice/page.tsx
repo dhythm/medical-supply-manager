@@ -9,12 +9,11 @@ export default function VoicePage() {
   return (
     <>
       <PageHeader
-        eyebrow="Voice of Customer / Exhibition"
-        title="作れる人が客先へ行くと、商談率が変わる"
-        description="展示会は、すでに関心を持って会場まで来た相手と直接話せる場です。誰が聞いたかまで含めて要望を記録し、開発・経営が現場と接触した量を成果として計測します。"
+        eyebrow="顧客理解"
+        title="顧客の声"
       />
 
-      <div className="grid gap-4 px-5 py-6 md:px-8 md:py-8">
+      <div className="mx-auto grid max-w-[1440px] gap-5 px-5 py-6 md:px-8 md:py-8">
         <Panel title={exhibition.name} hint={`${exhibition.venue} / ${exhibition.period}`}>
           <div className="grid gap-6 lg:grid-cols-2">
             <div>

@@ -9,9 +9,9 @@ export default function InsightsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Data Products / Governance"
-        title="価値の高いデータほど、扱いは慎重に設計する"
-        description="どの施設のどの診療科でどの製品が使われているかは、製薬企業や医材メーカーにとって価値の高い情報です。一方でレセプトや健診データは要配慮個人情報にあたるため、同意・匿名化・提供記録を仕組みとして先に用意します。"
+        eyebrow="データ活用"
+        title="データガバナンス"
+        description="同意・匿名化・提供記録を満たしたデータのみを扱います。"
         actions={
           <Badge variant="outline">
             <ShieldCheck className="size-3" aria-hidden="true" />
@@ -20,7 +20,7 @@ export default function InsightsPage() {
         }
       />
 
-      <div className="grid gap-4 px-5 py-6 md:px-8 md:py-8">
+      <div className="mx-auto grid max-w-[1440px] gap-5 px-5 py-6 md:px-8 md:py-8">
         <div className="grid gap-3 md:grid-cols-2">
           {insightPanels.map((p) => (
             <article key={p.title} className="border-border bg-card rounded-md border p-4">

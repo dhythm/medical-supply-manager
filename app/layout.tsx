@@ -1,10 +1,6 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { JetBrains_Mono, Noto_Sans_JP } from 'next/font/google'
 import './globals.css'
-
-const _notoSansJp = Noto_Sans_JP({ subsets: ['latin'], weight: ['400', '500', '700'] })
-const _jetBrainsMono = JetBrains_Mono({ subsets: ['latin'], weight: ['400', '500'] })
 
 export const metadata: Metadata = {
   title: 'MEDIBASE | 医療材料・医薬品マスタ統合基盤',

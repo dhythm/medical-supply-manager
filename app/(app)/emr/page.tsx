@@ -15,12 +15,11 @@ export default function EmrPage() {
   return (
     <>
       <PageHeader
-        eyebrow="EMR Integration"
-        title="電子カルテの実績と、購買をつなぐ"
-        description="電子カルテは外部接続が限られますが、クラウド型はAPI、オンプレミス型はSS-MIX2や閉域バッチで実績を受け取れます。オーダー実績を在庫消費に変換し、発注点を自動で見直します。"
+        eyebrow="システム連携"
+        title="電子カルテ連携"
       />
 
-      <div className="grid gap-4 px-5 py-6 md:px-8 md:py-8">
+      <div className="mx-auto grid max-w-[1440px] gap-5 px-5 py-6 md:px-8 md:py-8">
         <Panel title="連携状況" hint="接続方式は電子カルテのベンダー仕様に合わせて選択">
           <ul className="grid gap-3 md:grid-cols-2">
             {emrConnections.map((c) => (

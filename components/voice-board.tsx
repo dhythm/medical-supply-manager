@@ -27,25 +27,27 @@ export function VoiceBoard() {
   const rows = voiceTickets.filter((t) => source === 'すべて' || t.source === source)
 
   return (
-    <div className="border-border bg-card rounded-md border">
+    <div className="border-border/80 bg-card overflow-hidden rounded-xl border shadow-[0_1px_2px_oklch(0.2_0.02_230/4%)]">
       <div className="border-border flex flex-wrap items-center gap-2 border-b px-4 py-3">
         <h2 className="mr-auto text-sm font-medium">現場の要望チケット</h2>
-        {sources.map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => setSource(s)}
-            aria-pressed={source === s}
-            className={cn(
-              'rounded-full border px-2.5 py-1 text-xs transition-colors',
-              source === s
-                ? 'border-primary bg-primary text-primary-foreground'
-                : 'border-border text-muted-foreground hover:text-foreground',
-            )}
-          >
-            {s}
-          </button>
-        ))}
+        <div className="flex flex-wrap gap-2" role="group" aria-label="取得元フィルタ">
+          {sources.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setSource(s)}
+              aria-pressed={source === s}
+              className={cn(
+                'min-h-8 rounded-full border px-3 py-1 text-xs transition-colors',
+                source === s
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
       </div>
 
       <ul className="divide-border divide-y">

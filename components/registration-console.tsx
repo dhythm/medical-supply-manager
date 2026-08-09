@@ -51,17 +51,14 @@ export function RegistrationConsole() {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-5">
+    <div className="grid gap-5 lg:grid-cols-5">
       {/* 入力 + 取得ログ ------------------------------------------------ */}
-      <section className="border-border bg-card lg:col-span-2 rounded-md border">
-        <div className="border-border border-b px-4 py-3">
-          <h2 className="text-sm font-medium">1. 製品名を入力</h2>
-          <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-            型番や仕様は不要です。院内での呼び名・略称でも照合します。
-          </p>
+      <section className="border-border/80 bg-card overflow-hidden rounded-xl border shadow-[0_1px_2px_oklch(0.2_0.02_230/4%)] lg:col-span-2">
+        <div className="border-border/70 border-b px-5 py-4">
+          <h2 className="text-[15px] font-semibold">製品を検索</h2>
         </div>
 
-        <div className="flex flex-col gap-3 p-4">
+        <div className="flex flex-col gap-3 p-5">
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search
@@ -79,11 +76,18 @@ export function RegistrationConsole() {
                 className="pl-9"
               />
             </div>
-            <Button onClick={start} disabled={phase === 'fetching'}>
+            <Button
+              onClick={start}
+              disabled={phase === 'fetching'}
+              aria-label={phase === 'fetching' ? '製品情報を取得中' : '製品情報を検索'}
+            >
               {phase === 'fetching' ? (
-                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                <>
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                  <span className="sr-only">製品情報を取得中</span>
+                </>
               ) : (
-                'AI取得'
+                '検索'
               )}
             </Button>
           </div>
@@ -94,7 +98,7 @@ export function RegistrationConsole() {
                 key={p}
                 type="button"
                 onClick={() => setQuery(p)}
-                className="border-border text-muted-foreground hover:border-primary/60 hover:text-foreground rounded-full border px-2.5 py-1 text-xs transition-colors"
+                className="border-border text-muted-foreground hover:border-primary/60 hover:text-foreground min-h-8 rounded-full border px-3 py-1 text-xs transition-colors"
               >
                 {p}
               </button>
@@ -102,9 +106,9 @@ export function RegistrationConsole() {
           </div>
         </div>
 
-        <div className="border-border bg-secondary/50 border-t px-4 py-3">
-          <p className="text-muted-foreground font-mono text-[11px] uppercase tracking-[0.16em]">
-            外部情報ソース
+        <div className="border-border/70 bg-secondary/35 border-t px-5 py-4">
+          <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.1em]">
+            照合先
           </p>
           <ol className="mt-3 flex flex-col gap-2.5">
             {fetchSteps.map((step, i) => {
@@ -125,11 +129,7 @@ export function RegistrationConsole() {
                     <p className="font-mono text-xs">{step.source}</p>
                     <p className="text-muted-foreground text-xs leading-relaxed">{step.detail}</p>
                   </div>
-                  {done ? (
-                    <span className="text-muted-foreground ml-auto shrink-0 font-mono text-[11px]">
-                      {step.latencyMs}ms
-                    </span>
-                  ) : null}
+                  {done ? <span className="text-primary ml-auto shrink-0 text-[11px]">確認済み</span> : null}
                 </li>
               )
             })}
@@ -138,16 +138,14 @@ export function RegistrationConsole() {
       </section>
 
       {/* 候補 + 登録 ---------------------------------------------------- */}
-      <section className="border-border bg-card lg:col-span-3 rounded-md border">
-        <div className="border-border flex items-center justify-between gap-3 border-b px-4 py-3">
+      <section className="border-border/80 bg-card overflow-hidden rounded-xl border shadow-[0_1px_2px_oklch(0.2_0.02_230/4%)] lg:col-span-3">
+        <div className="border-border/70 flex min-h-16 items-center justify-between gap-3 border-b px-5 py-3.5">
           <div>
             <h2 className="text-sm font-medium">
-              {phase === 'registered' ? '3. 登録完了' : '2. 候補の確認と承認'}
+              {phase === 'registered' ? '登録完了' : '候補を確認'}
             </h2>
             <p className="text-muted-foreground mt-1 text-xs">
-              {phase === 'candidates' || phase === 'registered'
-                ? `「${query}」に対する候補 ${candidates.length}件`
-                : 'AI取得を実行すると候補が表示されます'}
+              {phase === 'candidates' || phase === 'registered' ? `${candidates.length}件の候補` : '未検索'}
             </p>
           </div>
           {phase !== 'idle' ? (
@@ -160,17 +158,20 @@ export function RegistrationConsole() {
 
         {phase === 'idle' || phase === 'fetching' ? (
           <div className="grid min-h-80 place-items-center p-8">
-            <p className="text-muted-foreground max-w-sm text-center text-sm leading-relaxed text-pretty">
+            <p
+              role={phase === 'fetching' ? 'status' : undefined}
+              className="text-muted-foreground max-w-sm text-center text-sm leading-relaxed text-pretty"
+            >
               {phase === 'fetching'
-                ? '公的認可情報・GS1・メーカーカタログを横断照合しています…'
-                : '手入力では1件あたり平均18.6分。AI取得では候補の承認のみで完了します。'}
+                ? '公的情報を照合しています…'
+                : '製品名を検索すると候補が表示されます'}
             </p>
           </div>
         ) : null}
 
         {phase === 'candidates' ? (
-          <div className="flex flex-col gap-3 p-4">
-            {candidates.map((c) => {
+          <div className="flex flex-col gap-3 p-5">
+            {candidates.map((c, index) => {
               const active = selected.name === c.name
               return (
                 <button
@@ -179,12 +180,15 @@ export function RegistrationConsole() {
                   onClick={() => setSelected(c)}
                   aria-pressed={active}
                   className={cn(
-                    'rounded-md border p-4 text-left transition-colors',
-                    active ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50',
+                    'rounded-xl border p-4 text-left transition-colors',
+                    active ? 'border-primary bg-primary/[0.045] ring-primary/10 ring-2' : 'border-border hover:border-primary/50',
                   )}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    <p className="min-w-0 text-sm font-medium">{c.name}</p>
+                    <div className="flex min-w-0 items-center gap-2">
+                      {index === 0 ? <Badge>推奨</Badge> : null}
+                      <p className="min-w-0 text-sm font-semibold">{c.name}</p>
+                    </div>
                     <span
                       className={cn(
                         'shrink-0 font-mono text-xs',
@@ -198,7 +202,7 @@ export function RegistrationConsole() {
                       一致度 {c.confidence}%
                     </span>
                   </div>
-                  <dl className="text-muted-foreground mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs sm:grid-cols-4">
+                  <dl className="text-muted-foreground mt-4 grid grid-cols-2 gap-x-4 gap-y-2.5 text-xs sm:grid-cols-4">
                     <div>
                       <dt className="opacity-70">メーカー</dt>
                       <dd className="text-foreground">{c.maker}</dd>
@@ -236,10 +240,7 @@ export function RegistrationConsole() {
               )
             })}
 
-            <div className="border-border mt-1 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
-              <p className="text-muted-foreground text-xs leading-relaxed">
-                承認すると商品マスタ・在庫・発注テンプレートに同時反映されます。
-              </p>
+            <div className="border-border mt-1 flex flex-wrap items-center justify-end gap-3 border-t pt-4">
               <Button onClick={() => setPhase('registered')}>
                 <ShieldCheck className="size-4" aria-hidden="true" />
                 この内容でマスタ登録
@@ -249,8 +250,8 @@ export function RegistrationConsole() {
         ) : null}
 
         {phase === 'registered' ? (
-          <div className="p-4">
-            <div className="border-primary/40 bg-primary/5 flex items-start gap-3 rounded-md border p-4">
+          <div className="p-5">
+            <div role="status" className="border-primary/30 bg-primary/5 flex items-start gap-3 rounded-xl border p-4">
               <Check className="text-primary mt-0.5 size-5 shrink-0" aria-hidden="true" />
               <div>
                 <p className="text-sm font-medium">
@@ -277,10 +278,10 @@ export function RegistrationConsole() {
                   ['償還価格', `¥${selected.reimbursement.toLocaleString('ja-JP')}`, '厚労省'],
                 ] as const
               ).map(([label, value, source]) => (
-                <div key={label} className="grid grid-cols-3 items-baseline gap-3 py-2.5">
+                <div key={label} className="grid gap-1 py-2.5 sm:grid-cols-3 sm:items-baseline sm:gap-3">
                   <dt className="text-muted-foreground text-xs">{label}</dt>
-                  <dd className="col-span-1 font-mono text-xs">{value}</dd>
-                  <dd className="text-muted-foreground text-right text-xs">{source}</dd>
+                  <dd className="font-mono text-xs">{value}</dd>
+                  <dd className="text-muted-foreground text-xs sm:text-right">{source}</dd>
                 </div>
               ))}
             </dl>
