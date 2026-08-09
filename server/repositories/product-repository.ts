@@ -111,7 +111,7 @@ export function createProductRepository(database: PrismaClient) {
           contractPriceYen: price?.contractPriceYen ?? 0,
           distributorName: price?.distributor.name ?? '—',
           completeness: row.completeness,
-          registrationSource: row.registrationSource === 'SAMPLE' ? 'サンプルデータ' : row.registrationSource,
+          registrationSource: registrationSourceLabel(row.registrationSource),
           updatedAt: row.updatedAt.toISOString().slice(0, 10),
           usedInEmr: row.usedInEmr,
         }
@@ -125,5 +125,154 @@ export function createProductRepository(database: PrismaClient) {
         totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
       }
     },
+    async register(input: {
+      organizationId: string
+      businessCode: string
+      name: string
+      category: string
+      origin: string
+      manufacturerName: string
+      manufacturerCountry: string
+      gtin: string | null
+      approvalNumber: string | null
+      regulatoryCode: string | null
+      unit: string
+      lookupQuery: string
+    }) {
+      const value = {
+        businessCode: required(input.businessCode, '院内コード', 40).toUpperCase(),
+        name: required(input.name, '製品名', 120),
+        category: required(input.category, 'カテゴリ', 40),
+        origin: required(input.origin, '製造区分', 40),
+        manufacturerName: required(input.manufacturerName, 'メーカー', 120),
+        manufacturerCountry: required(input.manufacturerCountry, 'メーカー国', 80),
+        gtin: optional(input.gtin, 'GTIN', 14),
+        approvalNumber: optional(input.approvalNumber, '承認番号', 80),
+        regulatoryCode: optional(input.regulatoryCode, '薬価基準・材料コード', 80),
+        unit: required(input.unit, '単位', 40),
+        lookupQuery: required(input.lookupQuery, '検索語', 120),
+      }
+      if (value.gtin && !/^\d{8,14}$/.test(value.gtin))
+        throw new Error('GTINは8〜14桁の数字で入力してください')
+
+      try {
+        return await database.$transaction(async (transaction) => {
+          const duplicateCode = await transaction.organizationProduct.findUnique({
+            where: {
+              organizationId_businessCode: {
+                organizationId: input.organizationId,
+                businessCode: value.businessCode,
+              },
+            },
+          })
+          if (duplicateCode) throw new Error('この院内コードは登録済みです')
+
+          const existingProduct = value.gtin
+            ? await transaction.product.findUnique({ where: { gtin: value.gtin } })
+            : null
+          if (existingProduct) {
+            const duplicateProduct = await transaction.organizationProduct.findUnique({
+              where: {
+                organizationId_productId: {
+                  organizationId: input.organizationId,
+                  productId: existingProduct.id,
+                },
+              },
+            })
+            if (duplicateProduct) throw new Error('この商品は商品マスタに登録済みです')
+          }
+
+          const product =
+            existingProduct ??
+            (await transaction.product.create({
+              data: {
+                name: value.name,
+                category: value.category,
+                origin: value.origin,
+                gtin: value.gtin,
+                approvalNumber: value.approvalNumber,
+                regulatoryCode: value.regulatoryCode,
+                unit: value.unit,
+                manufacturer: {
+                  connectOrCreate: {
+                    where: { name: value.manufacturerName },
+                    create: { name: value.manufacturerName, countryName: value.manufacturerCountry },
+                  },
+                },
+              },
+            }))
+
+          const completeness = calculateCompleteness({
+            name: product.name,
+            category: product.category,
+            origin: product.origin,
+            manufacturerName: value.manufacturerName,
+            unit: product.unit,
+            gtin: product.gtin,
+            approvalNumber: product.approvalNumber,
+            regulatoryCode: product.regulatoryCode,
+          })
+          const organizationProduct = await transaction.organizationProduct.create({
+            data: {
+              organizationId: input.organizationId,
+              productId: product.id,
+              businessCode: value.businessCode,
+              registrationSource: 'AI_ASSISTED_DUMMY',
+              completeness,
+            },
+          })
+
+          const normalizedQuery = normalize(value.lookupQuery)
+          if (normalizedQuery && normalizedQuery !== normalize(product.name)) {
+            await transaction.productAlias.create({
+              data: {
+                organizationProductId: organizationProduct.id,
+                name: value.lookupQuery,
+                normalizedName: normalizedQuery,
+              },
+            })
+          }
+          return organizationProduct
+        })
+      } catch (error) {
+        if (isUniqueConstraintError(error)) {
+          throw new Error('同じ登録内容がすでに保存されています')
+        }
+        throw error
+      }
+    },
   }
+}
+
+function required(value: string, label: string, maxLength: number) {
+  const result = value.trim()
+  if (!result) throw new Error(`${label}を入力してください`)
+  if (result.length > maxLength) throw new Error(`${label}は${maxLength}文字以内で入力してください`)
+  return result
+}
+
+function optional(value: string | null, label: string, maxLength: number) {
+  const result = value?.trim() || null
+  if (result && result.length > maxLength) throw new Error(`${label}は${maxLength}文字以内で入力してください`)
+  return result
+}
+
+function normalize(value: string) {
+  return value.trim().toLowerCase().replaceAll(/\s+/g, ' ')
+}
+
+function calculateCompleteness(input: Record<string, string | null>) {
+  const completed = Object.values(input).filter(Boolean).length
+  return Math.round((completed / Object.keys(input).length) * 100)
+}
+
+function registrationSourceLabel(value: string) {
+  if (value === 'SAMPLE') return 'サンプルデータ'
+  if (value === 'AI_ASSISTED_DUMMY') return 'AI補完（ダミー応答）'
+  if (value === 'MANUAL') return '手動登録'
+  return value
+}
+
+function isUniqueConstraintError(error: unknown) {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002'
 }

@@ -65,4 +65,62 @@ describe('product repository', () => {
     expect(result.totalCount).toBe(8)
     expect(result.totalPages).toBe(3)
   })
+
+  it('registers an editable AI candidate in the organization catalog', async () => {
+    const result = await repository.register({
+      organizationId,
+      businessCode: 'P-200001',
+      name: 'サージカルマスク',
+      category: '医療材料',
+      origin: '国内製',
+      manufacturerName: 'テストメディカル',
+      manufacturerCountry: '日本',
+      gtin: '4900000000001',
+      approvalNumber: null,
+      regulatoryCode: null,
+      unit: '箱',
+      lookupQuery: 'マスク',
+    })
+
+    expect(result.businessCode).toBe('P-200001')
+    await expect(
+      database.organizationProduct.findUniqueOrThrow({
+        where: { organizationId_businessCode: { organizationId, businessCode: 'P-200001' } },
+        include: { product: { include: { manufacturer: true } }, aliases: true },
+      }),
+    ).resolves.toMatchObject({
+      registrationSource: 'AI_ASSISTED_DUMMY',
+      product: { name: 'サージカルマスク', manufacturer: { name: 'テストメディカル' } },
+      aliases: [{ name: 'マスク', normalizedName: 'マスク' }],
+    })
+    await expect(repository.list({ organizationId, query: 'P-200001' })).resolves.toMatchObject({
+      items: [{ name: 'サージカルマスク', registrationSource: 'AI補完（ダミー応答）' }],
+    })
+  })
+
+  it('rejects duplicate business codes and products already registered to the organization', async () => {
+    const existing = await database.organizationProduct.findFirstOrThrow({
+      where: { organizationId, product: { gtin: { not: null } } },
+      include: { product: true },
+    })
+    const input = {
+      organizationId,
+      businessCode: existing.businessCode,
+      name: '重複商品',
+      category: '医療材料',
+      origin: '国内製',
+      manufacturerName: '重複メーカー',
+      manufacturerCountry: '日本',
+      gtin: '4900000000999',
+      approvalNumber: null,
+      regulatoryCode: null,
+      unit: '箱',
+      lookupQuery: '重複商品',
+    }
+
+    await expect(repository.register(input)).rejects.toThrow('この院内コードは登録済みです')
+    await expect(
+      repository.register({ ...input, businessCode: 'P-200002', gtin: existing.product.gtin }),
+    ).rejects.toThrow('この商品は商品マスタに登録済みです')
+  })
 })

@@ -17,6 +17,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   const category = singleValue(params.category)
   const origin = singleValue(params.origin)
   const page = Math.max(1, Number(singleValue(params.page) ?? '1') || 1)
+  const registered = singleValue(params.registered) === '1'
   const organization = await getCurrentOrganization()
   const repository = createProductRepository(getDatabaseClient())
   const [result, summary] = await Promise.all([
@@ -28,6 +29,11 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
     <>
       <PageHeader eyebrow="商品管理" title="商品マスタ" />
       <div className="mx-auto grid max-w-[1440px] gap-5 px-5 py-6 md:px-8 md:py-8">
+        {registered ? (
+          <p className="border-primary/30 bg-primary/5 text-primary rounded-lg border px-4 py-3 text-sm">
+            商品を登録しました
+          </p>
+        ) : null}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="医薬品" value={String(summary.categoryCount['医薬品'] ?? 0)} />
           <StatCard label="医療材料" value={String(summary.categoryCount['医療材料'] ?? 0)} />

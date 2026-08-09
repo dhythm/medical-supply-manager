@@ -7,6 +7,7 @@ import {
   HeartHandshake,
   LayoutDashboard,
   MessagesSquare,
+  Sparkles,
   Stethoscope,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -18,17 +19,18 @@ const navGroups = [
   {
     label: '購買業務',
     items: [
-      { href: '/', label: 'ダッシュボード', icon: LayoutDashboard, ready: true },
-      { href: '/catalog', label: '商品マスタ', icon: Boxes, ready: true },
-      { href: '/group-buying', label: '共同購入・価格', icon: HeartHandshake, ready: true },
+      { href: '/', label: 'ダッシュボード', icon: LayoutDashboard },
+      { href: '/registration', label: 'AI商品登録', icon: Sparkles },
+      { href: '/catalog', label: '商品マスタ', icon: Boxes },
+      { href: '/group-buying', label: '共同購入・価格', icon: HeartHandshake },
     ],
   },
   {
     label: '連携・活用',
     items: [
-      { href: '/emr', label: '電子カルテ連携', icon: Stethoscope, ready: true },
-      { href: '/insights', label: 'データガバナンス', icon: Database, ready: true },
-      { href: '/voice', label: '顧客の声', icon: MessagesSquare, ready: true },
+      { href: '/emr', label: '電子カルテ連携', icon: Stethoscope },
+      { href: '/insights', label: 'データガバナンス', icon: Database },
+      { href: '/voice', label: '顧客の声', icon: MessagesSquare },
     ],
   },
 ]
@@ -87,11 +89,6 @@ export function AppShell({
                       aria-hidden="true"
                     />
                     <span className="whitespace-nowrap font-medium">{item.label}</span>
-                    {!item.ready ? (
-                      <span className="text-sidebar-foreground/40 ml-auto hidden text-[10px] lg:inline">
-                        準備中
-                      </span>
-                    ) : null}
                   </Link>
                 )
               })}
