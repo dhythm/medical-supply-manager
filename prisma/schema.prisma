@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Organization {
+  id                   String                @id @default(uuid()) @db.Uuid
+  code                 String                @unique
+  name                 String
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+  facilities           Facility[]
+  organizationProducts OrganizationProduct[]
+  distributors         Distributor[]
+
+  @@map("organizations")
+}
+
+model Facility {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  code           String
+  name           String
+  bedCount       Int          @default(0) @map("bed_count")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@map("facilities")
+}
+
+model Manufacturer {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String    @unique
+  countryName String?   @map("country_name")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  products    Product[]
+
+  @@map("manufacturers")
+}
+
+model Product {
+  id                   String                @id @default(uuid()) @db.Uuid
+  manufacturerId       String                @map("manufacturer_id") @db.Uuid
+  gtin                 String?               @unique
+  name                 String
+  category             String
+  origin               String
+  approvalNumber       String?               @map("approval_number")
+  regulatoryCode       String?               @map("regulatory_code")
+  unit                 String
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+  manufacturer         Manufacturer          @relation(fields: [manufacturerId], references: [id], onDelete: Restrict)
+  organizationProducts OrganizationProduct[]
+
+  @@index([manufacturerId])
+  @@index([name])
+  @@map("products")
+}
+
+model OrganizationProduct {
+  id                 String          @id @default(uuid()) @db.Uuid
+  organizationId     String          @map("organization_id") @db.Uuid
+  productId          String          @map("product_id") @db.Uuid
+  businessCode       String          @map("business_code")
+  registrationSource String          @default("MANUAL") @map("registration_source")
+  completeness       Int             @default(0)
+  usedInEmr          Boolean         @default(false) @map("used_in_emr")
+  isActive           Boolean         @default(true) @map("is_active")
+  version            Int             @default(1)
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
+  organization       Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  product            Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  aliases            ProductAlias[]
+  contractPrices     ContractPrice[]
+
+  @@unique([organizationId, businessCode])
+  @@unique([organizationId, productId])
+  @@index([organizationId, isActive])
+  @@map("organization_products")
+}
+
+model ProductAlias {
+  id                    String              @id @default(uuid()) @db.Uuid
+  organizationProductId String              @map("organization_product_id") @db.Uuid
+  name                  String
+  normalizedName        String              @map("normalized_name")
+  organizationProduct   OrganizationProduct @relation(fields: [organizationProductId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationProductId, normalizedName])
+  @@map("product_aliases")
+}
+
+model Distributor {
+  id             String          @id @default(uuid()) @db.Uuid
+  organizationId String          @map("organization_id") @db.Uuid
+  code           String
+  name           String
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  contractPrices ContractPrice[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@map("distributors")
+}
+
+model ContractPrice {
+  id                    String              @id @default(uuid()) @db.Uuid
+  organizationProductId String              @map("organization_product_id") @db.Uuid
+  distributorId         String              @map("distributor_id") @db.Uuid
+  listPriceYen          Int?                @map("list_price_yen")
+  contractPriceYen      Int                 @map("contract_price_yen")
+  validFrom             DateTime            @map("valid_from") @db.Date
+  validTo               DateTime?           @map("valid_to") @db.Date
+  createdAt             DateTime            @default(now()) @map("created_at")
+  organizationProduct   OrganizationProduct @relation(fields: [organizationProductId], references: [id], onDelete: Restrict)
+  distributor           Distributor         @relation(fields: [distributorId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationProductId, distributorId, validFrom])
+  @@index([organizationProductId, validFrom, validTo])
+  @@map("contract_prices")
+}
