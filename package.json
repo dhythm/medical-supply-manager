@@ -34,7 +34,7 @@
     "verify": "pnpm verify:static && pnpm db:test:prepare && pnpm test:integration"
   },
   "dependencies": {
-    "@base-ui/react": "^1.5.0",
+    "@base-ui/react": "^1.7.0",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "@vercel/analytics": "1.6.1",
