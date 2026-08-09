@@ -1,7 +1,5 @@
-'use client'
-
 import { Search } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import Link from 'next/link'
 
 import { MeterBar } from '@/components/shared'
 import { Badge } from '@/components/ui/badge'
@@ -14,71 +12,46 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { products, type Category, type Origin } from '@/lib/mock-data'
-import { cn } from '@/lib/utils'
+import type { ProductListItem } from '@/server/repositories/product-repository'
 
-const categories: (Category | 'すべて')[] = [
-  'すべて',
-  '医薬品',
-  '医療材料',
-  '医療機器',
-  '一般消耗品',
-]
-const origins: (Origin | 'すべて')[] = ['すべて', '国内製', '海外製']
+const categories = ['すべて', '医薬品', '医療材料', '医療機器', '一般消耗品']
+const origins = ['すべて', '国内製', '海外製']
 
-export function CatalogTable() {
-  const [q, setQ] = useState('')
-  const [category, setCategory] = useState<Category | 'すべて'>('すべて')
-  const [origin, setOrigin] = useState<Origin | 'すべて'>('すべて')
+type CatalogTableProps = {
+  items: ProductListItem[]
+  totalCount: number
+  query?: string
+  category?: string
+  origin?: string
+  page: number
+  totalPages: number
+}
 
-  const rows = useMemo(
-    () =>
-      products.filter((p) => {
-        const hit =
-          q === '' ||
-          [p.name, p.maker, p.jan, p.regulatoryCode, p.approvalNo, p.id].some((v) =>
-            v.toLowerCase().includes(q.toLowerCase()),
-          )
-        return (
-          hit &&
-          (category === 'すべて' || p.category === category) &&
-          (origin === 'すべて' || p.origin === origin)
-        )
-      }),
-    [q, category, origin],
-  )
-
+export function CatalogTable({
+  items,
+  totalCount,
+  query,
+  category,
+  origin,
+  page,
+  totalPages,
+}: CatalogTableProps) {
   return (
     <div className="border-border/80 bg-card overflow-hidden rounded-xl border shadow-[0_1px_2px_oklch(0.2_0.02_230/4%)]">
-      <div className="border-border/70 flex flex-col gap-3 border-b p-4 lg:flex-row lg:items-center">
+      <form className="border-border/70 flex flex-col gap-3 border-b p-4 lg:flex-row lg:items-center">
         <div className="relative lg:max-w-sm lg:flex-1">
-          <Search
-            className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2"
-            aria-hidden="true"
-          />
-          <Input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="商品名 / メーカー / JAN / 承認番号"
-            aria-label="商品マスタ検索"
-            className="pl-9"
-          />
+          <Search className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2" aria-hidden="true" />
+          <Input name="q" defaultValue={query} placeholder="商品名 / メーカー / JAN / 承認番号" aria-label="商品マスタ検索" className="pl-9" />
         </div>
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="分類フィルタ">
-          {categories.map((c) => (
-            <FilterChip key={c} active={category === c} onClick={() => setCategory(c)}>
-              {c}
-            </FilterChip>
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-1.5 lg:ml-auto" role="group" aria-label="原産フィルタ">
-          {origins.map((o) => (
-            <FilterChip key={o} active={origin === o} onClick={() => setOrigin(o)}>
-              {o}
-            </FilterChip>
-          ))}
-        </div>
-      </div>
+        <select name="category" defaultValue={category ?? ''} aria-label="分類" className="border-input bg-background h-8 rounded-lg border px-3 text-xs">
+          {categories.map((item) => <option key={item} value={item === 'すべて' ? '' : item}>{item}</option>)}
+        </select>
+        <select name="origin" defaultValue={origin ?? ''} aria-label="原産区分" className="border-input bg-background h-8 rounded-lg border px-3 text-xs">
+          {origins.map((item) => <option key={item} value={item === 'すべて' ? '' : item}>{item}</option>)}
+        </select>
+        <button type="submit" className="bg-primary text-primary-foreground h-8 rounded-lg px-4 text-xs font-medium">絞り込む</button>
+        {(query || category || origin) ? <Link href="/catalog" className="text-muted-foreground px-2 text-xs hover:text-foreground">クリア</Link> : null}
+      </form>
 
       <div className="overflow-x-auto">
         <Table>
@@ -94,82 +67,52 @@ export function CatalogTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((p) => (
-              <TableRow key={p.id}>
+            {items.map((item) => (
+              <TableRow key={item.businessCode}>
                 <TableCell className="align-top">
-                  <p className="text-sm font-semibold leading-snug">{p.name}</p>
-                  <p className="text-muted-foreground mt-1 text-xs">
-                    <span className="font-mono">{p.id}</span> ・ {p.maker}
-                    {p.usedInEmr ? ' ・ カルテ実績あり' : ''}
-                  </p>
-                  <p className="text-muted-foreground/70 mt-1 font-mono text-[11px]">
-                    JAN {p.jan} ・ 承認 {p.approvalNo}
-                  </p>
+                  <p className="text-sm font-semibold leading-snug">{item.name}</p>
+                  <p className="text-muted-foreground mt-1 text-xs"><span className="font-mono">{item.businessCode}</span> ・ {item.manufacturerName}{item.usedInEmr ? ' ・ カルテ実績あり' : ''}</p>
+                  <p className="text-muted-foreground/70 mt-1 font-mono text-[11px]">JAN {item.gtin} ・ 承認 {item.approvalNumber}</p>
                 </TableCell>
-                <TableCell className="align-top">
-                  <div className="flex flex-col items-start gap-1">
-                    <Badge variant="secondary">{p.category}</Badge>
-                    <Badge variant={p.origin === '海外製' ? 'outline' : 'ghost'}>{p.origin}</Badge>
-                  </div>
-                </TableCell>
+                <TableCell className="align-top"><Badge variant="secondary">{item.category}</Badge></TableCell>
                 <TableCell className="align-top text-right font-mono text-xs">
-                  <span className="font-semibold">¥{p.contractPrice.toLocaleString('ja-JP')}</span>
-                  <span className="text-muted-foreground block">
-                    定価比 −{Math.round((1 - p.contractPrice / p.listPrice) * 100)}%
-                  </span>
+                  <span className="font-semibold">¥{item.contractPriceYen.toLocaleString('ja-JP')}</span>
+                  {item.listPriceYen > 0 ? <span className="text-muted-foreground block">定価比 −{Math.round((1 - item.contractPriceYen / item.listPriceYen) * 100)}%</span> : null}
                 </TableCell>
-                <TableCell className="align-top text-xs">{p.distributor}</TableCell>
+                <TableCell className="align-top text-xs">{item.distributorName}</TableCell>
                 <TableCell className="align-top">
-                  <Badge variant={p.origin === '海外製' ? 'outline' : 'secondary'}>
-                    {p.origin === '海外製' ? '海外調達' : '国内調達'}
-                  </Badge>
-                  <span className="text-muted-foreground mt-1 block text-[11px]">{p.makerCountry}</span>
+                  <Badge variant={item.origin === '海外製' ? 'outline' : 'secondary'}>{item.origin === '海外製' ? '海外調達' : '国内調達'}</Badge>
+                  <span className="text-muted-foreground mt-1 block text-[11px]">{item.manufacturerCountry}</span>
                 </TableCell>
                 <TableCell className="align-top">
-                  <MeterBar
-                    value={p.completeness}
-                    tone={p.completeness >= 95 ? 'primary' : p.completeness >= 80 ? 'accent' : 'muted'}
-                  />
-                  <span className="text-muted-foreground mt-1 block font-mono text-xs">
-                    {p.completeness}%
-                  </span>
+                  <MeterBar value={item.completeness} tone={item.completeness >= 95 ? 'primary' : item.completeness >= 80 ? 'accent' : 'muted'} />
+                  <span className="text-muted-foreground mt-1 block font-mono text-xs">{item.completeness}%</span>
                 </TableCell>
-                <TableCell className="align-top text-xs">{p.source}</TableCell>
+                <TableCell className="align-top text-xs">{item.registrationSource}</TableCell>
               </TableRow>
             ))}
+            {items.length === 0 ? <TableRow><TableCell colSpan={7} className="text-muted-foreground h-32 text-center">該当する商品はありません</TableCell></TableRow> : null}
           </TableBody>
         </Table>
       </div>
 
-      <div className="border-border/70 text-muted-foreground border-t px-4 py-3 text-xs">
-        {rows.length} 件表示 / 全 48,219 件（デモデータ）
+      <div className="border-border/70 text-muted-foreground flex items-center justify-between gap-3 border-t px-4 py-3 text-xs">
+        <span>{items.length}件表示 / 全{totalCount}件</span>
+        <div className="flex items-center gap-3">
+          {page > 1 ? <Link href={pageHref({ query, category, origin, page: page - 1 })}>前へ</Link> : null}
+          <span>{page} / {totalPages}</span>
+          {page < totalPages ? <Link href={pageHref({ query, category, origin, page: page + 1 })}>次へ</Link> : null}
+        </div>
       </div>
     </div>
   )
 }
 
-function FilterChip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean
-  onClick: () => void
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        'min-h-8 rounded-full border px-3 py-1 text-xs transition-colors',
-        active
-          ? 'border-primary bg-primary text-primary-foreground'
-          : 'border-border text-muted-foreground hover:text-foreground',
-      )}
-    >
-      {children}
-    </button>
-  )
+function pageHref({ query, category, origin, page }: { query?: string; category?: string; origin?: string; page: number }) {
+  const params = new URLSearchParams()
+  if (query) params.set('q', query)
+  if (category) params.set('category', category)
+  if (origin) params.set('origin', origin)
+  params.set('page', String(page))
+  return `/catalog?${params.toString()}`
 }

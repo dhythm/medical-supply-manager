@@ -1,4 +1,5 @@
 import { createDatabaseClient } from '../server/db/client'
+import { seedCatalogDatabase } from '../server/db/catalog-seed'
 import { seedDatabase } from '../server/db/seed'
 
 const databaseUrl = process.env.DATABASE_URL
@@ -10,6 +11,7 @@ const database = createDatabaseClient(databaseUrl)
 
 try {
   await seedDatabase(database)
+  await seedCatalogDatabase(database)
 } finally {
   await database.$disconnect()
 }
