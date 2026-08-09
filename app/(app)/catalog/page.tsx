@@ -1,6 +1,10 @@
+import { Plus } from 'lucide-react'
+import Link from 'next/link'
+
 import { PageHeader } from '@/components/app-shell'
 import { CatalogTable } from '@/components/catalog-table'
 import { StatCard } from '@/components/shared'
+import { Button } from '@/components/ui/button'
 import { getDatabaseClient } from '@/server/db/client'
 import { getCurrentOrganization } from '@/server/current-organization'
 import { createProductRepository } from '@/server/repositories/product-repository'
@@ -27,7 +31,16 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
 
   return (
     <>
-      <PageHeader eyebrow="商品管理" title="商品マスタ" />
+      <PageHeader
+        eyebrow="商品管理"
+        title="商品マスタ"
+        actions={
+          <Button nativeButton={false} render={<Link href="/catalog/new" />}>
+            <Plus aria-hidden="true" />
+            商品を登録
+          </Button>
+        }
+      />
       <div className="mx-auto grid max-w-[1440px] gap-5 px-5 py-6 md:px-8 md:py-8">
         {registered ? (
           <p className="border-primary/30 bg-primary/5 text-primary rounded-lg border px-4 py-3 text-sm">

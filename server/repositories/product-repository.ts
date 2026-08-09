@@ -127,6 +127,7 @@ export function createProductRepository(database: PrismaClient) {
     },
     async register(input: {
       organizationId: string
+      registrationSource: 'MANUAL' | 'AI_ASSISTED_DUMMY'
       businessCode: string
       name: string
       category: string
@@ -137,7 +138,7 @@ export function createProductRepository(database: PrismaClient) {
       approvalNumber: string | null
       regulatoryCode: string | null
       unit: string
-      lookupQuery: string
+      lookupQuery: string | null
     }) {
       const value = {
         businessCode: required(input.businessCode, '院内コード', 40).toUpperCase(),
@@ -150,8 +151,10 @@ export function createProductRepository(database: PrismaClient) {
         approvalNumber: optional(input.approvalNumber, '承認番号', 80),
         regulatoryCode: optional(input.regulatoryCode, '薬価基準・材料コード', 80),
         unit: required(input.unit, '単位', 40),
-        lookupQuery: required(input.lookupQuery, '検索語', 120),
+        lookupQuery: optional(input.lookupQuery, '検索語', 120),
       }
+      if (input.registrationSource === 'AI_ASSISTED_DUMMY' && !value.lookupQuery)
+        throw new Error('検索語を確認してください')
       if (value.gtin && !/^\d{8,14}$/.test(value.gtin))
         throw new Error('GTINは8〜14桁の数字で入力してください')
 
@@ -217,17 +220,17 @@ export function createProductRepository(database: PrismaClient) {
               organizationId: input.organizationId,
               productId: product.id,
               businessCode: value.businessCode,
-              registrationSource: 'AI_ASSISTED_DUMMY',
+              registrationSource: input.registrationSource,
               completeness,
             },
           })
 
-          const normalizedQuery = normalize(value.lookupQuery)
+          const normalizedQuery = value.lookupQuery ? normalize(value.lookupQuery) : null
           if (normalizedQuery && normalizedQuery !== normalize(product.name)) {
             await transaction.productAlias.create({
               data: {
                 organizationProductId: organizationProduct.id,
-                name: value.lookupQuery,
+                name: value.lookupQuery!,
                 normalizedName: normalizedQuery,
               },
             })

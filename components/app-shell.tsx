@@ -7,21 +7,35 @@ import {
   HeartHandshake,
   LayoutDashboard,
   MessagesSquare,
-  Sparkles,
   Stethoscope,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 import { cn } from '@/lib/utils'
 
-const navGroups = [
+type NavItem = {
+  href: string
+  label: string
+  icon: LucideIcon
+  children?: Array<{ href: string; label: string }>
+}
+
+const navGroups: Array<{ label: string; items: NavItem[] }> = [
   {
     label: '購買業務',
     items: [
       { href: '/', label: 'ダッシュボード', icon: LayoutDashboard },
-      { href: '/registration', label: 'AI商品登録', icon: Sparkles },
-      { href: '/catalog', label: '商品マスタ', icon: Boxes },
+      {
+        href: '/catalog',
+        label: '商品マスタ',
+        icon: Boxes,
+        children: [
+          { href: '/catalog', label: '一覧' },
+          { href: '/catalog/new', label: '商品登録' },
+        ],
+      },
       { href: '/group-buying', label: '共同購入・価格', icon: HeartHandshake },
     ],
   },
@@ -67,29 +81,53 @@ export function AppShell({
                 {group.label}
               </p>
               {group.items.map((item) => {
-                const active = pathname === item.href
+                const active =
+                  pathname === item.href || (item.href === '/catalog' && pathname.startsWith('/catalog/'))
                 const Icon = item.icon
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={active ? 'page' : undefined}
-                    className={cn(
-                      'relative flex min-h-10 shrink-0 items-center gap-3 rounded-lg px-3 text-[13px] transition-colors lg:mb-1',
-                      active
-                        ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
-                        : 'text-sidebar-foreground/65 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground',
-                    )}
-                  >
-                    {active ? (
-                      <span className="bg-sidebar-primary absolute inset-y-2 left-0 w-0.5 rounded-full" />
+                  <div key={item.href} className="contents lg:block">
+                    <Link
+                      href={item.href}
+                      aria-current={pathname === item.href ? 'page' : undefined}
+                      className={cn(
+                        'relative flex min-h-10 shrink-0 items-center gap-3 rounded-lg px-3 text-[13px] transition-colors lg:mb-1',
+                        active
+                          ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
+                          : 'text-sidebar-foreground/65 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground',
+                      )}
+                    >
+                      {active ? (
+                        <span className="bg-sidebar-primary absolute inset-y-2 left-0 w-0.5 rounded-full" />
+                      ) : null}
+                      <Icon
+                        className={cn('size-4 shrink-0', active && 'text-sidebar-primary')}
+                        aria-hidden="true"
+                      />
+                      <span className="whitespace-nowrap font-medium">{item.label}</span>
+                    </Link>
+                    {active && item.children ? (
+                      <div className="border-sidebar-border ml-5 hidden border-l pl-5 lg:grid">
+                        {item.children.map((child) => {
+                          const childActive = pathname === child.href
+                          return (
+                            <Link
+                              key={child.href}
+                              href={child.href}
+                              aria-current={childActive ? 'page' : undefined}
+                              className={cn(
+                                'py-1.5 text-xs transition-colors',
+                                childActive
+                                  ? 'text-sidebar-primary font-semibold'
+                                  : 'text-sidebar-foreground/50 hover:text-sidebar-foreground',
+                              )}
+                            >
+                              {child.label}
+                            </Link>
+                          )
+                        })}
+                      </div>
                     ) : null}
-                    <Icon
-                      className={cn('size-4 shrink-0', active && 'text-sidebar-primary')}
-                      aria-hidden="true"
-                    />
-                    <span className="whitespace-nowrap font-medium">{item.label}</span>
-                  </Link>
+                  </div>
                 )
               })}
             </div>

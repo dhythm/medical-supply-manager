@@ -1,6 +1,7 @@
 import { CalendarDays } from 'lucide-react'
 
 import { PageHeader } from '@/components/app-shell'
+import { CustomerFeedbackCreateForm } from '@/components/customer-feedback-create-form'
 import { Panel, StatCard } from '@/components/shared'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -71,57 +72,11 @@ export default async function VoicePage({
         </div>
 
         <Panel title="顧客の声を登録">
-          <form action={createCustomerFeedbackAction} className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-            <label className="grid gap-1 text-xs md:col-span-2 xl:col-span-3">
-              件名
-              <Input name="title" required maxLength={120} />
-            </label>
-            <label className="grid gap-1 text-xs">
-              受付経路
-              <select name="source" className="border-input bg-background h-8 rounded-lg border px-2">
-                {Object.entries(sourceLabel).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="grid gap-1 text-xs">
-              部門
-              <select name="department" className="border-input bg-background h-8 rounded-lg border px-2">
-                {Object.entries(departmentLabel).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="grid gap-1 text-xs">
-              重要度
-              <select name="impact" className="border-input bg-background h-8 rounded-lg border px-2">
-                <option value="LOW">低</option>
-                <option value="MEDIUM">中</option>
-                <option value="HIGH">高</option>
-              </select>
-            </label>
-            <label className="grid gap-1 text-xs md:col-span-2 xl:col-span-4">
-              内容
-              <textarea
-                name="summary"
-                required
-                maxLength={1000}
-                rows={3}
-                className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 min-h-20 rounded-lg border px-3 py-2 text-sm outline-none focus-visible:ring-3"
-              />
-            </label>
-            <label className="grid gap-1 text-xs">
-              受付日
-              <Input name="capturedAt" type="date" required />
-            </label>
-            <div className="flex items-end">
-              <Button type="submit">登録</Button>
-            </div>
-          </form>
+          <CustomerFeedbackCreateForm
+            action={createCustomerFeedbackAction}
+            sourceOptions={Object.entries(sourceLabel).map(([value, label]) => ({ value, label }))}
+            departmentOptions={Object.entries(departmentLabel).map(([value, label]) => ({ value, label }))}
+          />
         </Panel>
 
         <Panel title="顧客の声一覧" hint={`${result.items.length}件`}>

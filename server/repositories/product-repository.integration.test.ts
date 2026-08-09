@@ -69,6 +69,7 @@ describe('product repository', () => {
   it('registers an editable AI candidate in the organization catalog', async () => {
     const result = await repository.register({
       organizationId,
+      registrationSource: 'AI_ASSISTED_DUMMY',
       businessCode: 'P-200001',
       name: 'サージカルマスク',
       category: '医療材料',
@@ -98,6 +99,35 @@ describe('product repository', () => {
     })
   })
 
+  it('registers a manually entered product without creating an AI lookup alias', async () => {
+    const result = await repository.register({
+      organizationId,
+      registrationSource: 'MANUAL',
+      businessCode: 'P-200010',
+      name: '手動登録テスト商品',
+      category: '一般消耗品',
+      origin: '国内製',
+      manufacturerName: '手動登録メーカー',
+      manufacturerCountry: '日本',
+      gtin: '4900000000018',
+      approvalNumber: null,
+      regulatoryCode: null,
+      unit: '個',
+      lookupQuery: null,
+    })
+
+    expect(result.businessCode).toBe('P-200010')
+    await expect(
+      database.organizationProduct.findUniqueOrThrow({
+        where: { organizationId_businessCode: { organizationId, businessCode: 'P-200010' } },
+        include: { aliases: true },
+      }),
+    ).resolves.toMatchObject({ registrationSource: 'MANUAL', aliases: [] })
+    await expect(repository.list({ organizationId, query: 'P-200010' })).resolves.toMatchObject({
+      items: [{ name: '手動登録テスト商品', registrationSource: '手動登録' }],
+    })
+  })
+
   it('rejects duplicate business codes and products already registered to the organization', async () => {
     const existing = await database.organizationProduct.findFirstOrThrow({
       where: { organizationId, product: { gtin: { not: null } } },
@@ -105,6 +135,7 @@ describe('product repository', () => {
     })
     const input = {
       organizationId,
+      registrationSource: 'AI_ASSISTED_DUMMY' as const,
       businessCode: existing.businessCode,
       name: '重複商品',
       category: '医療材料',
