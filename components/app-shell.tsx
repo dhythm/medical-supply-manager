@@ -27,7 +27,7 @@ const navGroups = [
     label: '連携・活用',
     items: [
       { href: '/emr', label: '電子カルテ連携', icon: Stethoscope, ready: true },
-      { href: '/insights', label: 'データガバナンス', icon: Database, ready: false },
+      { href: '/insights', label: 'データガバナンス', icon: Database, ready: true },
       { href: '/voice', label: '顧客の声', icon: MessagesSquare, ready: false },
     ],
   },
