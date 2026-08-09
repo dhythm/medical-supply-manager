@@ -17,7 +17,10 @@ export function createPriceNegotiationRepository(database: PrismaClient) {
         include: {
           organizationProduct: { include: { product: true } },
           demands: { include: { facility: true }, orderBy: { facility: { code: 'asc' } } },
-          quotes: { include: { distributor: true }, orderBy: [{ unitPriceYen: 'asc' }, { submittedAt: 'desc' }] },
+          quotes: {
+            include: { distributor: true },
+            orderBy: [{ unitPriceYen: 'asc' }, { submittedAt: 'desc' }],
+          },
         },
         orderBy: [{ updatedAt: 'desc' }, { title: 'asc' }],
       })
@@ -69,7 +72,9 @@ export function createPriceNegotiationRepository(database: PrismaClient) {
         items,
         activeCount: items.filter((item) => !['COMPLETED', 'CANCELLED'].includes(item.status)).length,
         totalQuantity: items.reduce((sum, item) => sum + item.totalQuantity, 0),
-        participatingFacilityCount: new Set(items.flatMap((item) => item.demands.map((demand) => demand.facilityId))).size,
+        participatingFacilityCount: new Set(
+          items.flatMap((item) => item.demands.map((demand) => demand.facilityId)),
+        ).size,
         estimatedSavingsYen: items.reduce((sum, item) => sum + item.estimatedSavingsYen, 0),
         hasSampleData: items.some((item) => item.isSample),
       }
@@ -79,7 +84,12 @@ export function createPriceNegotiationRepository(database: PrismaClient) {
       const [products, facilities, distributors] = await Promise.all([
         database.organizationProduct.findMany({
           where: { organizationId, isActive: true },
-          select: { id: true, businessCode: true, product: { select: { name: true } }, contractPrices: { orderBy: { validFrom: 'desc' }, take: 1 } },
+          select: {
+            id: true,
+            businessCode: true,
+            product: { select: { name: true } },
+            contractPrices: { orderBy: { validFrom: 'desc' }, take: 1 },
+          },
           orderBy: { businessCode: 'asc' },
         }),
         database.facility.findMany({ where: { organizationId }, orderBy: { code: 'asc' } }),
@@ -117,11 +127,20 @@ export function createPriceNegotiationRepository(database: PrismaClient) {
       })
     },
 
-    async setDemand(input: { organizationId: string; negotiationId: string; facilityId: string; quantity: number }) {
+    async setDemand(input: {
+      organizationId: string
+      negotiationId: string
+      facilityId: string
+      quantity: number
+    }) {
       assertPositive(input.quantity, 'Quantity')
       const [negotiation, facility] = await Promise.all([
-        database.priceNegotiation.findFirst({ where: { id: input.negotiationId, organizationId: input.organizationId } }),
-        database.facility.findFirst({ where: { id: input.facilityId, organizationId: input.organizationId } }),
+        database.priceNegotiation.findFirst({
+          where: { id: input.negotiationId, organizationId: input.organizationId },
+        }),
+        database.facility.findFirst({
+          where: { id: input.facilityId, organizationId: input.organizationId },
+        }),
       ])
       if (!negotiation) throw new Error('Negotiation not found')
       if (!facility) throw new Error('Facility not found')
@@ -133,12 +152,22 @@ export function createPriceNegotiationRepository(database: PrismaClient) {
       })
     },
 
-    async addQuote(input: { organizationId: string; negotiationId: string; distributorId: string; unitPriceYen: number; minimumQuantity?: number }) {
+    async addQuote(input: {
+      organizationId: string
+      negotiationId: string
+      distributorId: string
+      unitPriceYen: number
+      minimumQuantity?: number
+    }) {
       assertPositive(input.unitPriceYen, 'Unit price')
       assertOptionalPositive(input.minimumQuantity, 'Minimum quantity')
       const [negotiation, distributor, latest] = await Promise.all([
-        database.priceNegotiation.findFirst({ where: { id: input.negotiationId, organizationId: input.organizationId } }),
-        database.distributor.findFirst({ where: { id: input.distributorId, organizationId: input.organizationId } }),
+        database.priceNegotiation.findFirst({
+          where: { id: input.negotiationId, organizationId: input.organizationId },
+        }),
+        database.distributor.findFirst({
+          where: { id: input.distributorId, organizationId: input.organizationId },
+        }),
         database.negotiationQuote.findFirst({
           where: { negotiationId: input.negotiationId, distributorId: input.distributorId },
           orderBy: { roundNumber: 'desc' },
@@ -157,7 +186,10 @@ export function createPriceNegotiationRepository(database: PrismaClient) {
         },
       })
       if (negotiation.status === 'DRAFT') {
-        await database.priceNegotiation.update({ where: { id: negotiation.id }, data: { status: 'COLLECTING_QUOTES', version: { increment: 1 } } })
+        await database.priceNegotiation.update({
+          where: { id: negotiation.id },
+          data: { status: 'COLLECTING_QUOTES', version: { increment: 1 } },
+        })
       }
       return quote
     },
@@ -174,10 +206,17 @@ export function createPriceNegotiationRepository(database: PrismaClient) {
         })
         if (!quote) throw new Error('Quote not found')
         const quantity = negotiation.demands.reduce((sum, demand) => sum + demand.quantity, 0)
-        if (quote.minimumQuantity !== null && quote.minimumQuantity > quantity) throw new Error('Minimum quantity is not met')
-        await transaction.negotiationQuote.updateMany({ where: { negotiationId: negotiation.id }, data: { isSelected: false } })
+        if (quote.minimumQuantity !== null && quote.minimumQuantity > quantity)
+          throw new Error('Minimum quantity is not met')
+        await transaction.negotiationQuote.updateMany({
+          where: { negotiationId: negotiation.id },
+          data: { isSelected: false },
+        })
         await transaction.negotiationQuote.update({ where: { id: quote.id }, data: { isSelected: true } })
-        await transaction.priceNegotiation.update({ where: { id: negotiation.id }, data: { status: 'NEGOTIATING', version: { increment: 1 } } })
+        await transaction.priceNegotiation.update({
+          where: { id: negotiation.id },
+          data: { status: 'NEGOTIATING', version: { increment: 1 } },
+        })
       })
     },
 
@@ -216,7 +255,12 @@ export function createPriceNegotiationRepository(database: PrismaClient) {
         })
         return transaction.priceNegotiation.update({
           where: { id: negotiation.id },
-          data: { status: 'COMPLETED', completedAt: new Date(), contractValidFrom: input.validFrom, version: { increment: 1 } },
+          data: {
+            status: 'COMPLETED',
+            completedAt: new Date(),
+            contractValidFrom: input.validFrom,
+            version: { increment: 1 },
+          },
         })
       })
     },

@@ -104,7 +104,9 @@ describe('price negotiation repository', () => {
         where: { organizationProductId, distributorId, contractPriceYen: 800 },
       }),
     ).resolves.toBe(1)
-    await expect(database.priceNegotiation.findUniqueOrThrow({ where: { id: negotiation.id } })).resolves.toMatchObject({
+    await expect(
+      database.priceNegotiation.findUniqueOrThrow({ where: { id: negotiation.id } }),
+    ).resolves.toMatchObject({
       status: 'COMPLETED',
     })
   })

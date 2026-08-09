@@ -79,11 +79,18 @@ export function AppShell({
                         : 'text-sidebar-foreground/65 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground',
                     )}
                   >
-                    {active ? <span className="bg-sidebar-primary absolute inset-y-2 left-0 w-0.5 rounded-full" /> : null}
-                    <Icon className={cn('size-4 shrink-0', active && 'text-sidebar-primary')} aria-hidden="true" />
+                    {active ? (
+                      <span className="bg-sidebar-primary absolute inset-y-2 left-0 w-0.5 rounded-full" />
+                    ) : null}
+                    <Icon
+                      className={cn('size-4 shrink-0', active && 'text-sidebar-primary')}
+                      aria-hidden="true"
+                    />
                     <span className="whitespace-nowrap font-medium">{item.label}</span>
                     {!item.ready ? (
-                      <span className="text-sidebar-foreground/40 ml-auto hidden text-[10px] lg:inline">準備中</span>
+                      <span className="text-sidebar-foreground/40 ml-auto hidden text-[10px] lg:inline">
+                        準備中
+                      </span>
                     ) : null}
                   </Link>
                 )
@@ -127,9 +134,7 @@ export function PageHeader({
     <header className="border-border/70 bg-card/85 border-b px-5 py-6 backdrop-blur md:px-8 md:py-7">
       <div className="mx-auto flex max-w-[1440px] flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="max-w-2xl">
-          <p className="text-primary text-[10px] font-bold uppercase tracking-[0.18em]">
-            {eyebrow}
-          </p>
+          <p className="text-primary text-[10px] font-bold uppercase tracking-[0.18em]">{eyebrow}</p>
           <h1 className="mt-1.5 text-2xl font-semibold tracking-[-0.035em] text-balance md:text-[1.75rem]">
             {title}
           </h1>

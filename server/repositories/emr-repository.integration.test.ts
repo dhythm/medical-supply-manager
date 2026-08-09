@@ -48,7 +48,9 @@ describe('EMR repository', () => {
 
     const result = await repository.list(organizationId)
     expect(result.connectionCount).toBe(1)
-    expect(result.facilities.find((item) => item.facilityId === facilityId)?.vendorName).toBe('Updated Vendor')
+    expect(result.facilities.find((item) => item.facilityId === facilityId)?.vendorName).toBe(
+      'Updated Vendor',
+    )
   })
 
   it('does not mark a connection as ready without its required endpoint', async () => {

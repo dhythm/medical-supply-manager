@@ -73,7 +73,12 @@ export function Panel({
   className?: string
 }) {
   return (
-    <section className={cn('border-border/80 bg-card overflow-hidden rounded-xl border shadow-[0_1px_2px_oklch(0.2_0.02_230/4%)]', className)}>
+    <section
+      className={cn(
+        'border-border/80 bg-card overflow-hidden rounded-xl border shadow-[0_1px_2px_oklch(0.2_0.02_230/4%)]',
+        className,
+      )}
+    >
       <div className="border-border/70 flex min-h-14 flex-wrap items-center justify-between gap-2 border-b px-5 py-3.5">
         <h2 className="text-[15px] font-semibold tracking-tight">{title}</h2>
         {hint ? <p className="text-muted-foreground text-xs font-medium">{hint}</p> : null}

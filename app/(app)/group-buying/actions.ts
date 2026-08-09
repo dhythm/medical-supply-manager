@@ -68,7 +68,12 @@ export async function completeNegotiationAction(formData: FormData) {
   redirect(result)
 }
 
-async function run(action: (organizationId: string, repository: ReturnType<typeof createPriceNegotiationRepository>) => Promise<void>) {
+async function run(
+  action: (
+    organizationId: string,
+    repository: ReturnType<typeof createPriceNegotiationRepository>,
+  ) => Promise<void>,
+) {
   try {
     const organization = await getCurrentOrganization()
     await action(organization.id, createPriceNegotiationRepository(getDatabaseClient()))

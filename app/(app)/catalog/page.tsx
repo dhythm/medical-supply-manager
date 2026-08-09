@@ -31,10 +31,23 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="医薬品" value={String(summary.categoryCount['医薬品'] ?? 0)} />
           <StatCard label="医療材料" value={String(summary.categoryCount['医療材料'] ?? 0)} />
-          <StatCard label="医療機器 / 消耗品" value={String((summary.categoryCount['医療機器'] ?? 0) + (summary.categoryCount['一般消耗品'] ?? 0))} />
+          <StatCard
+            label="医療機器 / 消耗品"
+            value={String(
+              (summary.categoryCount['医療機器'] ?? 0) + (summary.categoryCount['一般消耗品'] ?? 0),
+            )}
+          />
           <StatCard label="登録メーカー" value={String(summary.manufacturerCount)} />
         </div>
-        <CatalogTable items={result.items} totalCount={result.totalCount} query={query} category={category} origin={origin} page={result.page} totalPages={result.totalPages} />
+        <CatalogTable
+          items={result.items}
+          totalCount={result.totalCount}
+          query={query}
+          category={category}
+          origin={origin}
+          page={result.page}
+          totalPages={result.totalPages}
+        />
       </div>
     </>
   )

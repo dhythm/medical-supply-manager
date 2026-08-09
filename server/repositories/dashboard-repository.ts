@@ -3,38 +3,45 @@ import type { PrismaClient } from '@prisma/client'
 export function createDashboardRepository(database: PrismaClient) {
   return {
     async getSummary(organizationId: string) {
-      const [organization, totalProductCount, reviewProductCount, overseasProductCount, completeness, recentRows, sampleProductCount] =
-        await database.$transaction([
-          database.organization.findUniqueOrThrow({
-            where: { id: organizationId },
-            select: { name: true, facilities: { select: { bedCount: true } } },
-          }),
-          database.organizationProduct.count({ where: { organizationId, isActive: true } }),
-          database.organizationProduct.count({
-            where: { organizationId, isActive: true, completeness: { lt: 100 } },
-          }),
-          database.organizationProduct.count({
-            where: { organizationId, isActive: true, product: { origin: '海外製' } },
-          }),
-          database.organizationProduct.aggregate({
-            where: { organizationId, isActive: true },
-            _avg: { completeness: true },
-          }),
-          database.organizationProduct.findMany({
-            where: { organizationId, isActive: true },
-            select: {
-              businessCode: true,
-              completeness: true,
-              updatedAt: true,
-              product: { select: { name: true } },
-            },
-            orderBy: [{ updatedAt: 'desc' }, { businessCode: 'asc' }],
-            take: 4,
-          }),
-          database.organizationProduct.count({
-            where: { organizationId, isActive: true, registrationSource: 'SAMPLE' },
-          }),
-        ])
+      const [
+        organization,
+        totalProductCount,
+        reviewProductCount,
+        overseasProductCount,
+        completeness,
+        recentRows,
+        sampleProductCount,
+      ] = await database.$transaction([
+        database.organization.findUniqueOrThrow({
+          where: { id: organizationId },
+          select: { name: true, facilities: { select: { bedCount: true } } },
+        }),
+        database.organizationProduct.count({ where: { organizationId, isActive: true } }),
+        database.organizationProduct.count({
+          where: { organizationId, isActive: true, completeness: { lt: 100 } },
+        }),
+        database.organizationProduct.count({
+          where: { organizationId, isActive: true, product: { origin: '海外製' } },
+        }),
+        database.organizationProduct.aggregate({
+          where: { organizationId, isActive: true },
+          _avg: { completeness: true },
+        }),
+        database.organizationProduct.findMany({
+          where: { organizationId, isActive: true },
+          select: {
+            businessCode: true,
+            completeness: true,
+            updatedAt: true,
+            product: { select: { name: true } },
+          },
+          orderBy: [{ updatedAt: 'desc' }, { businessCode: 'asc' }],
+          take: 4,
+        }),
+        database.organizationProduct.count({
+          where: { organizationId, isActive: true, registrationSource: 'SAMPLE' },
+        }),
+      ])
 
       return {
         organizationName: organization.name,

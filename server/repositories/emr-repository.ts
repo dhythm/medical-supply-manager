@@ -115,11 +115,7 @@ export function createEmrRepository(database: PrismaClient) {
       })
     },
 
-    async changeStatus(input: {
-      organizationId: string
-      connectionId: string
-      status: EmrConnectionStatus
-    }) {
+    async changeStatus(input: { organizationId: string; connectionId: string; status: EmrConnectionStatus }) {
       const connection = await database.emrConnection.findFirst({
         where: { id: input.connectionId, organizationId: input.organizationId, archivedAt: null },
       })

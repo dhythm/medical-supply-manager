@@ -8,7 +8,9 @@ export function FeaturePreparation({ featureName }: { featureName: string }) {
       <span className="bg-secondary text-muted-foreground grid size-12 place-items-center rounded-xl">
         <Clock3 className="size-5" aria-hidden="true" />
       </span>
-      <Badge variant="outline" className="mt-5">準備中</Badge>
+      <Badge variant="outline" className="mt-5">
+        準備中
+      </Badge>
       <p className="mt-3 text-sm font-medium">{featureName}は準備中です。</p>
     </section>
   )

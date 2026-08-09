@@ -10,7 +10,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const summary = await createDashboardRepository(getDatabaseClient()).getSummary(organization.id)
 
   return (
-    <AppShell organization={{ name: summary.organizationName, facilityCount: summary.facilityCount, bedCount: summary.bedCount }}>
+    <AppShell
+      organization={{
+        name: summary.organizationName,
+        facilityCount: summary.facilityCount,
+        bedCount: summary.bedCount,
+      }}
+    >
       {children}
     </AppShell>
   )

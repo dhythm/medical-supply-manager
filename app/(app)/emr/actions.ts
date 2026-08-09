@@ -36,7 +36,9 @@ export async function changeEmrStatusAction(formData: FormData) {
   redirect(result)
 }
 
-async function run(action: (organizationId: string, repository: ReturnType<typeof createEmrRepository>) => Promise<void>) {
+async function run(
+  action: (organizationId: string, repository: ReturnType<typeof createEmrRepository>) => Promise<void>,
+) {
   try {
     const organization = await getCurrentOrganization()
     await action(organization.id, createEmrRepository(getDatabaseClient()))
